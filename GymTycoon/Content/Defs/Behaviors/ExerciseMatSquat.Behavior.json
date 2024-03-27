@@ -1,0 +1,22 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "ExerciseMatSquat",
+    "Script": "Script.Default.ExerciseWithPortableMat",
+    "RequiredOwnerSpriteAliases": [
+      "Default"
+    ],
+    "Exercise": {
+      "Name": "Squat",
+      "Efficiency": 1,
+      "Fun": 1,
+      "Difficulty": 1,
+      "Fitness": {
+        "Quads": 1,
+        "Glutes": 1
+      },
+      "Sprites": [ "Exercise.Squat" ]
+    }
+  }
+}

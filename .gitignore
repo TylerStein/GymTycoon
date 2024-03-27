@@ -17,6 +17,7 @@ Content/bin
 .tiled-session
 *.png
 *.ase
+*.aseprite
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

@@ -1,0 +1,24 @@
+{
+  "Type": "DynamicObject",
+  "Package": "Default",
+  "Data": {
+    "Name": "ReceptionKiosk",
+    "Category": "Reception",
+    "Beauty": 1,
+    "Width": 1,
+    "Height": 1,
+    "Holdable": false,
+    "Navigable": false,
+    "BuildCost": 10,
+    "Purchaseable": true,
+    "Behaviors": [ "Behavior.Default.Reception" ],
+    "Sprites": {
+      "Default": "Sprite.Default.ReceptionKiosk"
+    },
+    "GuestSlots": [ [ 0, 1 ] ],
+    "FunModifier": 0,
+    "FitnessModifier": 0,
+    "DifficultyModifier": 0,
+    "StaffSlots": [ [ 0, -1 ] ]
+  }
+}

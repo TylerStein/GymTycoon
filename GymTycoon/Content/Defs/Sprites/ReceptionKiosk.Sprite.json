@@ -1,0 +1,25 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "ReceptionKiosk",
+    "Layers": [
+      {
+        "Name": "ReceptionKiosk",
+        "SpriteSheets": [ "ReceptionKiosk" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "ReceptionKiosk",
+        "TextureSouth": "Textures/Sprites/Objects/Kiosk_S",
+        "TextureEast": "Textures/Sprites/Objects/Kiosk_E",
+        "TextureNorth": "Textures/Sprites/Objects/Kiosk_N",
+        "TextureWest": "Textures/Sprites/Objects/Kiosk_W",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      }
+    ]
+  }
+}

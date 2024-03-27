@@ -1,0 +1,11 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "Toilet",
+    "Script": "Script.Default.Toilet",
+    "RequiredOwnerSpriteAliases": [
+      "Default"
+    ]
+  }
+}

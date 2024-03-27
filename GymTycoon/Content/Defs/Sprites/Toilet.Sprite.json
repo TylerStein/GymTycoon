@@ -1,0 +1,25 @@
+﻿{
+    "Type": "Sprite",
+    "Package": "Default",
+    "Data": {
+        "Name": "Toilet",
+        "Layers": [
+            {
+                "Name": "Toilet",
+                "SpriteSheets": [ "Toilet" ]
+            }
+        ],
+        "SpriteSheets": [
+          {
+            "Name": "Toilet",
+            "TextureSouth": "Textures/Sprites/Objects/Toilet/Toilet_S",
+            "TextureEast": "Textures/Sprites/Objects/Toilet/Toilet_E",
+            "TextureNorth": "Textures/Sprites/Objects/Toilet/Toilet_N",
+            "TextureWest": "Textures/Sprites/Objects/Toilet/Toilet_W",
+            "FrameRate": 0,
+            "Width": 1,
+            "Height": 1
+          }
+        ]
+    }
+}

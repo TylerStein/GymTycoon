@@ -1,0 +1,23 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "TreadmillRun",
+    "Script": "Script.Default.RunWithTreadmill",
+    "RequiredOwnerSpriteAliases": [
+      "Default"
+    ],
+    "Exercise": {
+      "Name": "Run",
+      "Efficiency": 2,
+      "Fun": 1,
+      "Difficulty": 1,
+      "Fitness": {
+        "Quads": 1,
+        "Glutes": 1,
+        "Cardio": 1
+      },
+      "Sprites": [ "Walk" ]
+    }
+  }
+}

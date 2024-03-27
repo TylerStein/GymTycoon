@@ -1,0 +1,26 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "Treadmill",
+    "Layers": [
+      {
+        "Name": "Treadmill",
+        "SpriteSheets": [ "Treadmill" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "Treadmill",
+        "TextureSouth": "Textures/Sprites/Objects/Treadmill_S",
+        "TextureEast": "Textures/Sprites/Objects/Treadmill_E",
+        "TextureNorth": "Textures/Sprites/Objects/Treadmill_N",
+        "TextureWest": "Textures/Sprites/Objects/Treadmill_W",
+
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      }
+    ]
+  }
+}

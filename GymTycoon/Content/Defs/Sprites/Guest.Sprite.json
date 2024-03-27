@@ -1,0 +1,65 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "Guest",
+    "Layers": [
+      {
+        "Name": "Default",
+        "SpriteSheets": [ "Idle", "Walk", "Exercise.PushUp", "Exercise.Squat", "Exercise.DumbellCurl" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "Idle",
+        "TextureSouth": "Textures/Sprites/Guest_Walk",
+        "TextureEast": "Textures/Sprites/Guest_Walk",
+        "TextureNorth": "Textures/Sprites/Guest_Walk",
+        "TextureWest": "Textures/Sprites/Guest_Walk",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      },
+      {
+        "Name": "Walk",
+        "TextureSouth": "Textures/Sprites/Guest_Walk",
+        "TextureEast": "Textures/Sprites/Guest_Walk",
+        "TextureNorth": "Textures/Sprites/Guest_Walk",
+        "TextureWest": "Textures/Sprites/Guest_Walk",
+        "FrameRate": 12,
+        "Width": 6,
+        "Height": 1
+      },
+      {
+        "Name": "Exercise.PushUp",
+        "TextureSouth": "Textures/Sprites/Guest_Floor_Exercise_1",
+        "TextureEast": "Textures/Sprites/Guest_Floor_Exercise_1",
+        "TextureNorth": "Textures/Sprites/Guest_Floor_Exercise_1",
+        "TextureWest": "Textures/Sprites/Guest_Floor_Exercise_1",
+        "FrameRate": 4,
+        "Width": 3,
+        "Height": 1
+      },
+      {
+        "Name": "Exercise.Squat",
+        "TextureSouth": "Textures/Sprites/Guest_Floor_Exercise_2",
+        "TextureEast": "Textures/Sprites/Guest_Floor_Exercise_2",
+        "TextureNorth": "Textures/Sprites/Guest_Floor_Exercise_2",
+        "TextureWest": "Textures/Sprites/Guest_Floor_Exercise_2",
+        "FrameRate": 4,
+        "Width": 3,
+        "Height": 1
+      },
+      {
+        "Name": "Exercise.DumbellCurl",
+        "TextureSouth": "Textures/Sprites/Guest_DumbellCurl",
+        "TextureEast": "Textures/Sprites/Guest_DumbellCurl",
+        "TextureNorth": "Textures/Sprites/Guest_DumbellCurl",
+        "TextureWest": "Textures/Sprites/Guest_DumbellCurl",
+        "FrameRate": 4,
+        "Width": 3,
+        "Height": 1
+      }
+    ]
+  }
+}

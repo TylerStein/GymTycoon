@@ -1,0 +1,11 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "Reception",
+    "Script": "Script.Default.Reception",
+    "RequiredOwnerSpriteAliases": [
+      "Default"
+    ]
+  }
+}

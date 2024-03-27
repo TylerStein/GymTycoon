@@ -1,0 +1,25 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "ExerciseMat",
+    "Layers": [
+      {
+        "Name": "ExerciseMat",
+        "SpriteSheets": [ "ExerciseMat" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "ExerciseMat",
+        "TextureSouth": "Textures/Sprites/Objects/Floor_Mat",
+        "TextureEast": "Textures/Sprites/Objects/Floor_Mat_R",
+        "TextureNorth": "Textures/Sprites/Objects/Floor_Mat",
+        "TextureWest": "Textures/Sprites/Objects/Floor_Mat_R",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "ExerciseMatPushUp",
+    "Script": "Script.Default.ExerciseWithPortableMat",
+    "RequiredOwnerSpriteAliases": [
+      "Default"
+    ],
+    "Exercise": {
+      "Name": "PushUp",
+      "Efficiency": 1,
+      "Fun": 1,
+      "Difficulty": 1,
+      "Fitness": {
+        "Triceps": 1,
+        "Biceps": 1,
+        "UpperBack": 1
+      },
+      "Sprites": [ "Exercise.PushUp" ]
+    }
+  }
+}

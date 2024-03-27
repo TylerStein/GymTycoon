@@ -1,0 +1,85 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "GymTycoon/Content/Maps/Test.tmx",
+    "expandedProjectPaths": [
+        "GymTycoon/Content",
+        "GymTycoon/Content/Maps",
+        "GymTycoon",
+        ".",
+        "GymTycoon/Content/Tilesets"
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "GymTycoon/Content/Maps/Industrial.tmx": {
+            "scale": 3,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 511.8333333333333,
+                "y": 255.83333333333334
+            }
+        },
+        "GymTycoon/Content/Maps/OcclusionTest.tmx": {
+            "scale": 4.03453125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 160.24166376205415,
+                "y": 80.18279694822043
+            }
+        },
+        "GymTycoon/Content/Maps/Test.tmx": {
+            "scale": 4,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 514.375,
+                "y": 240.25
+            }
+        },
+        "GymTycoon/Content/Tilesets/Garage.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.75,
+            "scaleInEditor": 1
+        },
+        "GymTycoon/Content/Tilesets/Industrial.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "GymTycoon/Content/Tilesets/Volumes.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Tilesets/Garage.tsx": {
+            "dynamicWrapping": true
+        }
+    },
+    "last.imagePath": "F:/dev/game/monogame/GymTycoon/GymTycoon/Content/Textures/Tilemaps/Industrial",
+    "map.height": 32,
+    "map.lastUsedFormat": "tmx",
+    "map.orientation": null,
+    "map.tileHeight": 16,
+    "map.width": 32,
+    "openFiles": [
+        "GymTycoon/Content/Maps/Test.tmx",
+        "GymTycoon/Content/Tilesets/Garage.tsx",
+        "GymTycoon/Content/Tilesets/Volumes.tsx",
+        "GymTycoon/Content/Maps/OcclusionTest.tmx",
+        "GymTycoon/Content/Maps/Industrial.tmx",
+        "GymTycoon/Content/Tilesets/Industrial.tsx"
+    ],
+    "project": "GymTycoon.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "GymTycoon/Content/Tilesets/Industrial.tsx",
+        "GymTycoon/Content/Maps/Industrial.tmx",
+        "GymTycoon/Content/Maps/OcclusionTest.tmx",
+        "GymTycoon/Content/Tilesets/Volumes.tsx",
+        "GymTycoon/Content/Tilesets/Garage.tsx",
+        "GymTycoon/Content/Maps/Test.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.type": 0
+}

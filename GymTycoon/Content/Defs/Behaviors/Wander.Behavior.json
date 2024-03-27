@@ -1,0 +1,8 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "Wander",
+    "Script": "Script.Default.Wander"
+  }
+}

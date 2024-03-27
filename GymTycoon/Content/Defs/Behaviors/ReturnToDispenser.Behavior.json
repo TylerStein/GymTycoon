@@ -1,0 +1,8 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "ReturnToDispenser",
+    "Script": "Script.Default.ReturnToDispenser"
+  }
+}

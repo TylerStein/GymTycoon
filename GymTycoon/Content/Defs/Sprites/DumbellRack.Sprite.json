@@ -1,0 +1,69 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "DumbellRack",
+    "Layers": [
+      {
+        "Name": "Default",
+        "SpriteSheets": [ "DumbellRack0" ]
+      },
+      {
+        "Name": "DynamicObject.Default.Dumbell",
+        "SpriteSheets": [ "DumbellRack1", "DumbellRack2", "DumbellRack3", "DumbellRack4" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "DumbellRack4",
+        "TextureNorth": "Textures/Sprites/Objects/DumbellRack/DumbellRack4_N",
+        "TextureSouth": "Textures/Sprites/Objects/DumbellRack/DumbellRack4_S",
+        "TextureEast": "Textures/Sprites/Objects/DumbellRack/DumbellRack4_E",
+        "TextureWest": "Textures/Sprites/Objects/DumbellRack/DumbellRack4_W",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      },
+      {
+        "Name": "DumbellRack3",
+        "TextureNorth": "Textures/Sprites/Objects/DumbellRack/DumbellRack3_N",
+        "TextureSouth": "Textures/Sprites/Objects/DumbellRack/DumbellRack3_S",
+        "TextureEast": "Textures/Sprites/Objects/DumbellRack/DumbellRack3_E",
+        "TextureWest": "Textures/Sprites/Objects/DumbellRack/DumbellRack3_W",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      },
+      {
+        "Name": "DumbellRack2",
+        "TextureNorth": "Textures/Sprites/Objects/DumbellRack/DumbellRack2_N",
+        "TextureSouth": "Textures/Sprites/Objects/DumbellRack/DumbellRack2_S",
+        "TextureEast": "Textures/Sprites/Objects/DumbellRack/DumbellRack2_E",
+        "TextureWest": "Textures/Sprites/Objects/DumbellRack/DumbellRack2_W",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      },
+      {
+        "Name": "DumbellRack1",
+        "TextureNorth": "Textures/Sprites/Objects/DumbellRack/DumbellRack1_N",
+        "TextureSouth": "Textures/Sprites/Objects/DumbellRack/DumbellRack1_S",
+        "TextureEast": "Textures/Sprites/Objects/DumbellRack/DumbellRack1_E",
+        "TextureWest": "Textures/Sprites/Objects/DumbellRack/DumbellRack1_W",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      },
+      {
+        "Name": "DumbellRack0",
+        "TextureNorth": "Textures/Sprites/Objects/DumbellRack/DumbellRack0_N",
+        "TextureSouth": "Textures/Sprites/Objects/DumbellRack/DumbellRack0_S",
+        "TextureEast": "Textures/Sprites/Objects/DumbellRack/DumbellRack0_E",
+        "TextureWest": "Textures/Sprites/Objects/DumbellRack/DumbellRack0_W",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      }
+    ]
+  }
+}

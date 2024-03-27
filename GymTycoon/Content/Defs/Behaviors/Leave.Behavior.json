@@ -1,0 +1,8 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "Leave",
+    "Script": "Script.Default.Leave"
+  }
+}

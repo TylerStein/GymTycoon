@@ -1,0 +1,25 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "Dumbell",
+    "Layers": [
+      {
+        "Name": "Dumbell",
+        "SpriteSheets": [ "Dumbell" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "Dumbell",
+        "TextureNorth": "Textures/Sprites/Objects/Dumbell",
+        "TextureSouth": "Textures/Sprites/Objects/Dumbell",
+        "TextureEast": "Textures/Sprites/Objects/Dumbell",
+        "TextureWest": "Textures/Sprites/Objects/Dumbell",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      }
+    ]
+  }
+}

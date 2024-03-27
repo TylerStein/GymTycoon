@@ -1,0 +1,24 @@
+{
+  "Type": "DynamicObject",
+  "Package": "Default",
+  "Data": {
+    "Name": "Dumbell",
+    "Category": "Equipment",
+    "Beauty": -2,
+    "Width": 1,
+    "Height": 1,
+    "Holdable": true,
+    "Navigable":  true,
+    "BuildCost": 0,
+    "Purchaseable":  false,
+    "Behaviors": [ "Behavior.Default.DumbellCurl", "Behavior.Default.ReturnToDispenser" ],
+    "Sprites": {
+      "Default": "Sprite.Default.Dumbell"
+    },
+    "GuestSlots": [ [ 0, 0 ] ],
+    "FunModifier": 1,
+    "FitnessModifier": 1,
+    "DifficultyModifier": 1,
+    "StaffSlots": []
+  }
+}

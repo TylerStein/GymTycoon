@@ -1,0 +1,21 @@
+{
+  "Type": "Behavior",
+  "Package": "Default",
+  "Data": {
+    "Name": "DumbellCurl",
+    "Script": "Script.Default.DumbellCurl",
+    "RequiredOwnerSpriteAliases": [
+      "Default"
+    ],
+    "Exercise": {
+      "Name": "DumbellCurl",
+      "Efficiency": 2,
+      "Fun": 1,
+      "Difficulty": 2,
+      "Fitness": {
+        "Biceps": 2
+      },
+      "Sprites": [ "Exercise.DumbellCurl" ]
+    }
+  }
+}
