@@ -14,7 +14,8 @@ MonoGame.imGuiNet-main/
 TiledCS-main/
 Content/Textures
 Content/bin
-.tiled-session
+*.tiled-session
+*.tiled-project
 *.png
 *.ase
 *.aseprite
