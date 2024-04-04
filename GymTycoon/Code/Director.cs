@@ -8,9 +8,121 @@ using System.Linq;
 
 namespace GymTycoon.Code
 {
+    public class SpawnTimeline
+    {
+        public int MaxSpawnPerTick = 2;
+
+        public float NewGuestChance = 0.9f;
+        public float ReturnGuestChance = 0.9f;
+
+        public float SpawnThrottleDecay = 0.01f;
+        public float SpawnCost = 0.1f;
+
+        public bool IsAtStart => _cursor == 0;
+        public bool HasTimeline => _timeline.Length > 0;
+
+        private OffscreenGuest[][] _timeline;
+        private int _cursor = 0;
+
+        private float[] _cachedGraphData = [];
+        private bool _graphIsDirty = true;
+
+        public bool Next(List<OffscreenGuest> value)
+        {
+            Peek(value);
+            _cursor++;
+            if (_cursor >= _timeline.Length)
+            {
+                _cursor = 0;
+                return false;
+            }
+
+            return true;
+        }
+
+        public void Peek(List<OffscreenGuest> value)
+        {
+            value.Clear();
+            value.AddRange(_timeline[_cursor]);
+        }
+
+        public void GenerateDay(DateTime today, Director director, int seed = 0)
+        {
+            _graphIsDirty = true;
+            int steps = 24 * 60 - 1;
+            DateTime yesterday = today.AddDays(-1);
+            float throttle = 0f;
+            Random random = seed == 0 ? Random.Shared : new Random(seed);
+            _timeline = new OffscreenGuest[steps][];
+            _cursor = 0;
+            List<OffscreenGuest> events = [];
+            for (int i = 0; i < steps; i++)
+            {
+                throttle -= SpawnThrottleDecay;
+                if (throttle < 0f)
+                {
+                    throttle = 0f;
+                }
+
+                events.Clear();
+                int hour = (int)MathF.Floor(steps / 60);
+                float timeOfDayPopularity = Director.TimeOfDayPopularity[hour];
+                float rng = random.NextSingle();
+
+                if (rng < timeOfDayPopularity)
+                {
+                    foreach (var guest in director.OffscreenGuests)
+                    {
+                        if (guest.LastVisit <= yesterday && guest.Schedule.TimeInWindow(GameInstance.Instance.Time.GetHour()))
+                        {
+                            if ((Random.Shared.NextSingle() + throttle) < ReturnGuestChance)
+                            {
+                                events.Add(guest);
+                            }
+                        }
+                    }
+
+
+                    if ((Random.Shared.NextSingle() + throttle) < NewGuestChance)
+                    {
+                        throttle += SpawnCost;
+                        events.Add(director.CreateOffscreenGuest());
+                    }
+                }
+
+                _timeline[i] = events.ToArray();
+            }
+        }
+
+        public void DrawImGui()
+        {
+            float max = 0;
+            if (_graphIsDirty)
+            {
+                _cachedGraphData = new float[_timeline.Length / 30];
+                for (int i = 0; i < _timeline.Length / 30; i++)
+                {
+                    int sum = 0;
+                    for (int j = 0; j < 30; j++)
+                    {
+                        sum += _timeline[(i * 30) + j].Length;
+                    }
+
+                    _cachedGraphData[i] = sum;
+                    if (sum > max)
+                    {
+                        max = sum;
+                    }
+                }
+            }
+
+            ImGui.PlotLines("Timeline", ref _cachedGraphData[0], _cachedGraphData.Length, 0, null, 0, max, new System.Numerics.Vector2(0, 100));
+        }
+    }
+
     public class Director
     {
-        public float[] TimeOfDayPopularity = [
+        public static readonly float[] TimeOfDayPopularity = [
             0.020f, // 12am
             0.015f, // 01am
             0.015f, // 02am
@@ -42,28 +154,23 @@ namespace GymTycoon.Code
 
         public List<Guest> ActiveGuests = [];
 
+        public SpawnTimeline Timeline;
+
         public int MinGuestMoney = 0;
         public int MaxguestMoney = 0;
 
         private bool _autoSpawnEnabled = false;
 
-        private float _newGuestChance = 0.24f;
-        private float _returnGuestChance = 0.42f;
-
-        private float _spawnThrottle = 0;
-        private float _spawnThrottleDecay = 0.01f;
-        private float _spawnCost = 0.3f;
-
         private int _maxActiveGuests = 1000;
+
+        public void Initialize()
+        {
+            Timeline = new SpawnTimeline();
+            Timeline.GenerateDay(GameInstance.Instance.Time.GetDateTime(), this);
+        }
 
         public void Update(float deltaTime, bool tick)
         {
-            _spawnThrottle -= _spawnThrottleDecay;
-            if (_spawnThrottle < 0f)
-            {
-                _spawnThrottle = 0f;
-            }
-
 
             for (int i = ActiveGuests.Count - 1; i >= 0; i--)
             {
@@ -85,36 +192,28 @@ namespace GymTycoon.Code
                 return;
             }
 
-            // TODO: predictable spawning modified by deltaTime
-            float timeOfDayPopularity = TimeOfDayPopularity[GameInstance.Instance.Time.GetHour()];
-            float rng = Random.Shared.NextSingle();
-            if (rng < timeOfDayPopularity)
+            List<OffscreenGuest> toSpawn = [];
+            if (GameInstance.Instance.Time.DidChangeMinute)
             {
-                DateTime yesterday = GameInstance.Instance.Time.GetDateTime().AddDays(-1);
-                List<OffscreenGuest> toSpawn = [];
-                foreach (var guest in OffscreenGuests)
+                if (GameInstance.Instance.Time.DidChangeDay)
                 {
-                    if (guest.LastVisit <= yesterday && guest.Schedule.TimeInWindow(GameInstance.Instance.Time.GetHour()))
+                    Timeline.GenerateDay(GameInstance.Instance.Time.GetDateTime(), this);
+                }
+
+                if (Timeline.Next(toSpawn))
+                {
+                    foreach (var offscreen in toSpawn)
                     {
-                        if ((Random.Shared.NextSingle() + _spawnThrottle) < _returnGuestChance)
+                        if (ActiveGuests.Count < _maxActiveGuests)
                         {
-                            toSpawn.Add(guest);
+                            SpawnOffscreenGuest(offscreen);
                         }
                     }
-                }
-
-                foreach (var guest in toSpawn)
-                {
-                    SpawnOffscreenGuest(guest);
-                }
-
-                if ((Random.Shared.NextSingle() + _spawnThrottle) < _newGuestChance) {
-                    SpawnNewGuest();
                 }
             }
         }
 
-        public Guest SpawnNewGuest()
+        public OffscreenGuest CreateOffscreenGuest()
         {
             OffscreenGuest offscreenGuest = new OffscreenGuest([
                 DefaultTraits.GetRandomScheduleTraitForTime(GameInstance.Instance.Time.GetHour()),
@@ -123,13 +222,16 @@ namespace GymTycoon.Code
                     WealthTier = (WealthTier)Random.Shared.Next((int)WealthTier.Low, (int)WealthTier.Premium),
                 }
             ]);
-            return SpawnOffscreenGuest(offscreenGuest);
+            return offscreenGuest;
+        }
+
+        public Guest SpawnNewGuest()
+        {
+            return SpawnOffscreenGuest(CreateOffscreenGuest());
         }
 
         public Guest SpawnOffscreenGuest(OffscreenGuest offscreenGuest)
         {
-            _spawnThrottle += _spawnCost;
-
             List<int> spawnTiles = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Spawn, 4);
             if (spawnTiles.Count == 0)
             {
@@ -166,11 +268,10 @@ namespace GymTycoon.Code
             ImGui.Begin("[DEBUG] Director");
             ImGui.Text($"In Gym: {ActiveGuests.Count()}");
             ImGui.Text($"Offscreen: {OffscreenGuests.Count()}");
-            ImGui.Text($"Throttle: {_spawnThrottle}");
             ImGui.Checkbox("AutoSpawn", ref _autoSpawnEnabled);
-            ImGui.DragFloat("SpawnCost", ref _spawnCost, 0.01f, 0f, 10f);
-            ImGui.DragFloat("NewGuestChance", ref _newGuestChance, 0.01f, 0f, 1f);
-            ImGui.DragFloat("RetGuestChance", ref _returnGuestChance, 0.01f, 0f, 1f);
+            ImGui.DragFloat("SpawnCost", ref Timeline.SpawnCost, 0.01f, 0f, 10f);
+            ImGui.DragFloat("NewGuestChance", ref Timeline.NewGuestChance, 0.01f, 0f, 1f);
+            ImGui.DragFloat("RetGuestChance", ref Timeline.ReturnGuestChance, 0.01f, 0f, 1f);
             ImGui.DragInt("MaxActiveGuests", ref _maxActiveGuests, 1, 0, 5000);
 
             if (ImGui.Button("Spawn New Guest"))
@@ -181,6 +282,11 @@ namespace GymTycoon.Code
             if (OffscreenGuests.Count > 0 && ImGui.Button("Spawn Offscreen Guest"))
             {
                 SpawnOffscreenGuest(OffscreenGuests[Random.Shared.Next(0, OffscreenGuests.Count)]);
+            }
+
+            if (ImGui.CollapsingHeader("Today's Timeline"))
+            {
+                Timeline.DrawImGui();
             }
 
             if (ImGui.CollapsingHeader("Guest List"))

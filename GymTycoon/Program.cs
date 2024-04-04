@@ -16,6 +16,12 @@ Scenario scenario = new Scenario()
     InitialBoostDecayRate = 1f,
     MarketingDecayRate = 1f,
     NewEquipmentDecayRate = 1f,
+    FailConditionMoney = -1000,
+    FailConditionMoneyMinutes = 60 * 24,
+    FailConditionMoneyEnabled = true,
+    FailConditionReputation = 0,
+    FailConditionReputationEnabled = true,
+    FailConditionReputationMinutes = 60 * 24,
 };
 
 using var game = GymTycoon.Code.GameFactory.CreateTiledMapGameInstance(scenario); 

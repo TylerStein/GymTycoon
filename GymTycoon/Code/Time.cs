@@ -1,9 +1,6 @@
 ﻿using ImGuiNET;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GymTycoon.Code
 {
@@ -130,6 +127,11 @@ namespace GymTycoon.Code
         public float GetTimeScale()
         {
             return _timeScales[_timeScaleIndex];
+        }
+
+        public void PauseTimeScale()
+        {
+            _timeScaleIndex = 0;
         }
 
         public void DrawImGui()

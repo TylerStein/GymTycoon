@@ -44,6 +44,7 @@ namespace GymTycoon.Code
         public Cursor Cursor;
         public Build Build;
         public Stats Stats;
+        public Scenario Scenario;
 
         private readonly int _cameraMoveSpeed = 10;
         private readonly float _cameraZoomSpeed = 0.1f;
@@ -74,6 +75,7 @@ namespace GymTycoon.Code
             Cursor = new Cursor();
             Build = new Build();
             Stats = new Stats();
+            Scenario = scenario;
 
             Economy.PlayerMoney = scenario.StartingCapital;
             Economy.InfiniteMoney = scenario.InfiniteMoney;
@@ -89,19 +91,20 @@ namespace GymTycoon.Code
         {
             _instance = this;
 
-            Input.RegisterBinaryActionKey(SymbolInputDevMenu, Keys.OemTilde);
-            Input.RegisterLinearActionKey(SymbolInputHorizontal, Keys.A, Keys.D);
-            Input.RegisterLinearActionKey(SymbolInputHorizontal, Keys.Left, Keys.Right);
-            Input.RegisterLinearActionKey(SymbolInputVertical, Keys.W, Keys.S);
-            Input.RegisterLinearActionKey(SymbolInputVertical, Keys.Up, Keys.Down);
-            Input.RegisterLinearActionKey(SymbolInputDepth, Keys.Q, Keys.E);
-            Input.RegisterLinearActionKey(SymbolInputZoom, Keys.Z, Keys.X);
-            Input.RegisterLinearActionScrollWheel(SymbolInputZoom, false);
-            Input.RegisterBinaryActionMouseButton(SymbolInputSelect, MouseButton.Left);
-            Input.RegisterBinaryActionKey(SymbolInputExit, Keys.Escape);
-            Input.RegisterBinaryActionKey(SymbolInputDebug, Keys.OemTilde);
-            Input.RegisterBinaryActionKey(SymbolInputRotate, Keys.R);
-            Input.RegisterBinaryActionKey(SymbolInputDelete, Keys.Delete);
+            InputFilters inputFilter = InputFilters.MouseOnScreen | InputFilters.MouseNotOnGui | InputFilters.KeyboardNotOnGui;
+            Input.RegisterBinaryActionKey(SymbolInputDevMenu, Keys.OemTilde, InputFilters.None);
+            Input.RegisterLinearActionKey(SymbolInputHorizontal, Keys.A, Keys.D, InputFilters.KeyboardNotOnGui);
+            Input.RegisterLinearActionKey(SymbolInputHorizontal, Keys.Left, Keys.Right, InputFilters.KeyboardNotOnGui);
+            Input.RegisterLinearActionKey(SymbolInputVertical, Keys.W, Keys.S, InputFilters.KeyboardNotOnGui);
+            Input.RegisterLinearActionKey(SymbolInputVertical, Keys.Up, Keys.Down, InputFilters.KeyboardNotOnGui);
+            Input.RegisterLinearActionKey(SymbolInputDepth, Keys.Q, Keys.E, inputFilter);
+            Input.RegisterLinearActionKey(SymbolInputZoom, Keys.Z, Keys.X, inputFilter);
+            Input.RegisterLinearActionScrollWheel(SymbolInputZoom, false, inputFilter);
+            Input.RegisterBinaryActionMouseButton(SymbolInputSelect, MouseButton.Left, inputFilter);
+            Input.RegisterBinaryActionKey(SymbolInputExit, Keys.Escape, inputFilter);
+            Input.RegisterBinaryActionKey(SymbolInputDebug, Keys.OemTilde, inputFilter);
+            Input.RegisterBinaryActionKey(SymbolInputRotate, Keys.R, inputFilter);
+            Input.RegisterBinaryActionKey(SymbolInputDelete, Keys.Delete, inputFilter);
 
             IsMouseVisible = false;
             Window.AllowUserResizing = true;
@@ -110,6 +113,8 @@ namespace GymTycoon.Code
 
             ImGuiRenderer = new ImGuiRenderer(this);
             ImGuiRenderer.RebuildFontAtlas();
+
+            Director.Initialize();
 
             Graphics.ApplyChanges();
 
@@ -152,6 +157,7 @@ namespace GymTycoon.Code
             DebugNav.Update(); // must update before cursor to consume inputs
             Cursor.Update();
             Stats.Update();
+            Scenario.Update();
 
             Point3 worldSize = World.GetSize();
             int depthChange = Input.GetLinearAction(SymbolInputDepth).Delta;
@@ -213,6 +219,7 @@ namespace GymTycoon.Code
             Input.DrawImGui();
             Director.DrawImGui();
             DebugNav.DrawImGui();
+            Scenario.DrawImGui();
 
             ImGuiRenderer.EndLayout();
 

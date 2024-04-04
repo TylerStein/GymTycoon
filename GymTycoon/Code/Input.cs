@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace GymTycoon.Code
 {
@@ -15,10 +16,17 @@ namespace GymTycoon.Code
         public bool Released { get; internal set; }
         public float DownTime { get; internal set; }
         public bool Enabled { get; internal set; }
+        public InputFilters Filters { get; internal set; }
 
         internal List<Keys> Keys = [];
         internal bool leftMouse = false;
         internal bool rightMouse = false;
+
+        public BinaryAction(string name, InputFilters filters = InputFilters.None)
+        {
+            Name = name;
+            Filters = filters;
+        }
 
         public bool ConsumePressed()
         {
@@ -33,11 +41,12 @@ namespace GymTycoon.Code
             return false;
         }
 
-        public void UpdateFromState(KeyboardState keyboardState, MouseState mouseState, float deltaTime)
+        public void UpdateFromState(KeyboardState keyboardState, MouseState mouseState, float deltaTime, InputFilters activeFilters)
         {
+            bool disable = (activeFilters & Filters) != InputFilters.None;
             foreach (var key in Keys)
             {
-                if (keyboardState.IsKeyDown(key))
+                if (keyboardState.IsKeyDown(key) && !disable)
                 {
                     if (!IsDown)
                     {
@@ -71,7 +80,7 @@ namespace GymTycoon.Code
 
             if (leftMouse)
             {
-                if (mouseState.LeftButton == ButtonState.Pressed)
+                if (mouseState.LeftButton == ButtonState.Pressed && !disable)
                 {
                     if (!IsDown)
                     {
@@ -105,7 +114,7 @@ namespace GymTycoon.Code
 
             if (rightMouse)
             {
-                if (mouseState.RightButton == ButtonState.Pressed)
+                if (mouseState.RightButton == ButtonState.Pressed && !disable)
                 {
                     if (!IsDown)
                     {
@@ -145,6 +154,7 @@ namespace GymTycoon.Code
         public int Value { get; internal set; } = 0;
         public int Delta { get; internal set; } = 0;
         public bool Enabled { get; internal set; }
+        public InputFilters Filters { get; internal set; }
 
         internal List<Keys> PositiveKeys = [];
         internal List<Keys> NegativeKeys = [];
@@ -152,12 +162,18 @@ namespace GymTycoon.Code
         internal bool invertScrollWheel = false;
         internal int lastScrollWheelValue = 0;
 
-        public void UpdateFromState(KeyboardState keyboardState, MouseState mouseState, float deltaTime)
+        public LinearAction(string name, InputFilters filters = InputFilters.None)
         {
+            Name = name;
+            Filters = filters;
+        }
+        public void UpdateFromState(KeyboardState keyboardState, MouseState mouseState, float deltaTime, InputFilters activeFilters)
+        {
+            bool disable = (activeFilters & Filters) != InputFilters.None;
             bool setValue = false;
             foreach (var key in PositiveKeys)
             {
-                if (keyboardState.IsKeyDown(key))
+                if (keyboardState.IsKeyDown(key) && !disable)
                 {
                     if (Value < 1)
                     {
@@ -175,7 +191,7 @@ namespace GymTycoon.Code
 
             foreach (var key in NegativeKeys)
             {
-                if (keyboardState.IsKeyDown(key))
+                if (keyboardState.IsKeyDown(key) && !disable)
                 {
                     if (Value > -1)
                     {
@@ -211,10 +227,24 @@ namespace GymTycoon.Code
             {
                 Value = 0;
             }
+
+            if (disable)
+            {
+                Delta = 0;
+            }
         }
     }
 
     public enum MouseButton { Left, Right };
+
+    [Flags]
+    public enum InputFilters
+    {
+        None = 0x0,
+        MouseOnScreen = 0x1,
+        MouseNotOnGui = 0x2,
+        KeyboardNotOnGui = 0x4,
+    }
 
     public class Input
     {
@@ -236,21 +266,21 @@ namespace GymTycoon.Code
             return action;
         }
 
-        public void RegisterBinaryActionKey(string name, Keys key)
+        public void RegisterBinaryActionKey(string name, Keys key, InputFilters filters = InputFilters.None)
         {
             if (!BinaryActions.ContainsKey(name))
             {
-                BinaryActions.Add(name, new BinaryAction());
+                BinaryActions.Add(name, new BinaryAction(name, filters));
             }
 
             BinaryActions[name].Keys.Add(key);
         }
 
-        public void RegisterBinaryActionMouseButton(string name, MouseButton button)
+        public void RegisterBinaryActionMouseButton(string name, MouseButton button, InputFilters filters = InputFilters.None)
         {
             if (!BinaryActions.ContainsKey(name))
             {
-                BinaryActions.Add(name, new BinaryAction());
+                BinaryActions.Add(name, new BinaryAction(name, filters));
             }
 
             switch (button)
@@ -265,22 +295,22 @@ namespace GymTycoon.Code
             }
         }
 
-        public void RegisterLinearActionKey(string name, Keys positive, Keys negative)
+        public void RegisterLinearActionKey(string name, Keys positive, Keys negative, InputFilters filters = InputFilters.None)
         {
             if (!LinearActions.ContainsKey(name))
             {
-                LinearActions.Add(name, new LinearAction());
+                LinearActions.Add(name, new LinearAction(name, filters));
             }
 
             LinearActions[name].PositiveKeys.Add(positive);
             LinearActions[name].NegativeKeys.Add(negative);
         }
 
-        public void RegisterLinearActionScrollWheel(string name, bool invert)
+        public void RegisterLinearActionScrollWheel(string name, bool invert, InputFilters filters = InputFilters.None)
         {
             if (!LinearActions.ContainsKey(name))
             {
-                LinearActions.Add(name, new LinearAction());
+                LinearActions.Add(name, new LinearAction(name, filters));
             }
 
             LinearActions[name].scrollWheel = true;
@@ -306,24 +336,43 @@ namespace GymTycoon.Code
         {
             KeyboardState keyboardState = Keyboard.GetState();
             MouseState mouseState = Mouse.GetState(window);
+            ImGuiIOPtr imGuiIoPtr = ImGui.GetIO();
+
+            bool imGuiWantsMouse = imGuiIoPtr.WantCaptureMouse;
+            bool imGuiWantsKeyboard = imGuiIoPtr.WantTextInput;
+
+            MouseIsOnScreen = viewport.Contains(MousePosition) && !imGuiWantsMouse;
+
+            InputFilters filters = InputFilters.None;
+            if (!MouseIsOnScreen)
+            {
+                filters |= InputFilters.MouseOnScreen;
+            }
+
+            if (imGuiWantsMouse)
+            {
+                filters |= InputFilters.MouseNotOnGui;
+            }
+
+            if (imGuiWantsKeyboard)
+            {
+                filters |= InputFilters.KeyboardNotOnGui;
+            }
 
             foreach (var kvp in BinaryActions)
             {
-                kvp.Value.UpdateFromState(keyboardState, mouseState, (float)gameTime.ElapsedGameTime.TotalSeconds);
+                kvp.Value.UpdateFromState(keyboardState, mouseState, (float)gameTime.ElapsedGameTime.TotalSeconds, filters);
             }
 
             foreach (var kvp in LinearActions)
             {
-                kvp.Value.UpdateFromState(keyboardState, mouseState, (float)gameTime.ElapsedGameTime.TotalSeconds);
+                kvp.Value.UpdateFromState(keyboardState, mouseState, (float)gameTime.ElapsedGameTime.TotalSeconds, filters);
             }
 
             if (!LockMouse)
             {
                 MousePosition = mouseState.Position;
             }
-
-            MouseIsOnScreen = viewport.Contains(MousePosition);
-
         }
 
         public void DrawImGui()

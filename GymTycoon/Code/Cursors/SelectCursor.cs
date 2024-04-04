@@ -87,8 +87,7 @@ namespace GymTycoon.Code.Cursors
                     // TODO: Better handle unselect behavior
                     if (lastSelected.guest != null)
                     {
-                        // doesnt work because imgui fuck
-                        // lastSelected.guest.FollowCam = false;
+                        lastSelected.guest.FollowCam = false;
                     }
 
                     if (lastSelected.dynamicObjectInstance != null)
