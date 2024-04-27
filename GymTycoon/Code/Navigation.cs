@@ -53,9 +53,9 @@ namespace GymTycoon.Code
             return (tileType.HasProperty(TileProperties.Navigable) && !world.HasBlockingObjectsAtLocation(index));
         }
 
-        public static bool IsValidNeighbor(World world, int from, int to, int finalDest)
+        public static bool IsValidNeighbor(World world, int to, int finalDest, bool ignoreDestination)
         {
-            if (to == finalDest)
+            if (to == finalDest && !ignoreDestination)
             {
                 return true;
             }
@@ -63,34 +63,33 @@ namespace GymTycoon.Code
             return IsTileNavigable(world, to);
         }
 
-        public static void FillValidNeighbors(Point3?[] neighbors, World world, Point3 current, Point3 dest)
+        public static void FillValidNeighbors(Point3?[] neighbors, World world, Point3 current, Point3 dest, bool ignoreDestination = false)
         {
             // TODO: Stair/ramp logic
             Point3 next;
             int index;
 
             int destIndex = world.GetIndex(dest);
-            int fromIndex = world.GetIndex(current);
 
             // forward
             next = current + Point3.Forward;
             index = world.GetIndex(next);
-            neighbors[0] = IsValidNeighbor(world, fromIndex, index, destIndex) ? next : null;
+            neighbors[0] = IsValidNeighbor(world, index, destIndex, ignoreDestination) ? next : null;
 
             // right
             next = current + Point3.Right;
             index = world.GetIndex(next);
-            neighbors[1] = IsValidNeighbor(world, fromIndex, index, destIndex) ? next : null;
+            neighbors[1] = IsValidNeighbor(world, index, destIndex, ignoreDestination) ? next : null;
 
             // backward
             next = current + Point3.Backward;
             index = world.GetIndex(next);
-            neighbors[2] = IsValidNeighbor(world, fromIndex, index, destIndex) ? next : null;
+            neighbors[2] = IsValidNeighbor(world, index, destIndex, ignoreDestination) ? next : null;
 
             // left
             next = current + Point3.Left;
             index = world.GetIndex(next);
-            neighbors[3] = IsValidNeighbor(world, fromIndex, index, destIndex) ? next : null;
+            neighbors[3] = IsValidNeighbor(world, index, destIndex, ignoreDestination) ? next : null;
 
         }
 

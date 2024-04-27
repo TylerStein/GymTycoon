@@ -3,7 +3,7 @@ using GymTycoon.Code.Common;
 using ImGuiNET;
 using System.Collections.Generic;
 using GymTycoon.Code.AI;
-using System.Diagnostics.CodeAnalysis;
+using GymTycoon.Code.Data;
 
 namespace GymTycoon.Code.Cursors
 {
@@ -115,7 +115,9 @@ namespace GymTycoon.Code.Cursors
         {
             if (_selectedHitbox != null && _selectedHitbox.dynamicObjectInstance != null)
             {
+                DynamicObjectCategory category = _selectedHitbox.dynamicObjectInstance.Data.Category;
                 GameInstance.Instance.World.DeleteDynamicObject(_selectedHitbox.dynamicObjectInstance);
+                GameInstance.Instance.UpdateZoneForObjectType(category);
             }
         }
 

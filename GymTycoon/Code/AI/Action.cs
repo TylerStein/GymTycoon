@@ -136,6 +136,7 @@ namespace GymTycoon.Code.AI
                     Target.WorldPosition = Target.Parent.WorldPosition;
                     Target.Racked = true;
                     Target.Parent.UpdateRemainingQuantity(Target, 1);
+                    Target.Parent.TryReleaseClaimSlot(guest);
                 }
                 else
                 {
@@ -145,6 +146,7 @@ namespace GymTycoon.Code.AI
                 }
 
                 Target.Held = false;
+                Target.TryReleaseClaimSlot(guest);
                 _isComplete = true;
                 return EActionState.SUCCESS;
             }

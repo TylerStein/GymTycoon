@@ -3,14 +3,11 @@ using GymTycoon.Code.Common;
 using GymTycoon.Code.Cursors;
 using GymTycoon.Code.Data;
 using GymTycoon.Code.DebugTools;
-using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.ImGuiNet;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace GymTycoon.Code
 {
@@ -49,6 +46,8 @@ namespace GymTycoon.Code
         public Scenario Scenario;
         public NeedsManager NeedsManager;
 
+        public Dictionary<DynamicObjectCategory, Zone> Zones;
+
         private readonly int _cameraMoveSpeed = 10;
         private readonly float _cameraZoomSpeed = 0.1f;
 
@@ -80,6 +79,8 @@ namespace GymTycoon.Code
             Stats = new Stats();
             NeedsManager = new NeedsManager();
             Scenario = scenario;
+
+            Zones = [];
 
             Economy.PlayerMoney = scenario.StartingCapital;
             Economy.InfiniteMoney = scenario.InfiniteMoney;
@@ -202,6 +203,56 @@ namespace GymTycoon.Code
             _worldDirty = false;
 
             base.Update(gameTime);
+        }
+
+        // TODO: Come up with a better home for this
+        public void UpdateZoneForObjectType(DynamicObjectCategory dynamicObjectCategory)
+        {
+            if (dynamicObjectCategory != DynamicObjectCategory.Toilet && dynamicObjectCategory != DynamicObjectCategory.Reception)
+            {
+                return;
+            }
+
+            Dictionary<int, int> influence = [];
+            foreach (var obj in World.GetAllDynamicObjects())
+            {
+                if (obj.Data.Category == dynamicObjectCategory)
+                {
+                    int index = obj.WorldPosition;
+                    influence[index] = 4;
+                }
+            }
+
+            if (!Zones.ContainsKey(dynamicObjectCategory))
+            {
+                Zones.Add(dynamicObjectCategory, new Zone());
+            }
+
+            Zones[dynamicObjectCategory].CalculateZone(World, influence);
+        }
+
+        // TODO: Cleanup
+        public bool CanExerciseOnTile(int worldIndex)
+        {
+            foreach (var zone in Zones)
+            {
+                return !zone.Value.Data.Contains(worldIndex);
+            }
+
+            return true;
+        }
+        
+        // TODO: Cleanup
+        public bool CanNavigatePreCheckInOnTile(int worldIndex)
+        {
+            if (Zones.ContainsKey(DynamicObjectCategory.Reception))
+            {
+                return Zones[DynamicObjectCategory.Reception].Data.Contains(worldIndex);
+
+            }
+
+            // no check-in, go anywhere
+            return true;
         }
 
         protected override void Draw(GameTime gameTime)

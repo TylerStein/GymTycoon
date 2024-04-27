@@ -1,12 +1,9 @@
 ﻿using GymTycoon.Code.Common;
 using GymTycoon.Code.Data;
-using ImGuiNET;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Security;
+using System.Linq;
 
 namespace GymTycoon.Code.AI
 {
@@ -210,6 +207,11 @@ namespace GymTycoon.Code.AI
             if (activeAction == null)
             {
                 List<int> destinations = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Navigable);
+                if (!guest.HasCheckedIn)
+                {
+                    destinations = destinations.Where(GameInstance.Instance.CanNavigatePreCheckInOnTile).ToList();
+                }
+
                 int index = Random.Shared.Next(destinations.Count);
                 activeAction = new AMoveTo(GameInstance.Instance.World.GetPosition(destinations[index]));
                 inst.Blackboard[SymbolActiveAction] = activeAction;
@@ -241,12 +243,20 @@ namespace GymTycoon.Code.AI
         private const string SymbolActiveAction = "Active";
         private const string SymbolHasDestination = "HasDest";
         private const string SymbolDestination = "Destination";
+        private const string SymbolState = "State";
+
+        private const int StateCheckHeldObject = 0;
+        private const int StateFindHeldObjectDropPoint = 1;
+        private const int StateMoveToHeldObjectDropPoint = 2;
+        private const int StateDropHeldObject = 3;
+        private const int StateLeave = 4;
 
         public override void Reset(BehaviorInstance inst)
         {
             inst.Blackboard[SymbolActiveAction] = null;
             inst.Blackboard[SymbolHasDestination] = false;
             inst.Blackboard[SymbolDestination] = 0;
+            inst.Blackboard[SymbolState] = 0;
         }
 
         public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
@@ -276,35 +286,102 @@ namespace GymTycoon.Code.AI
 
         public override bool Tick(BehaviorInstance inst, Guest guest)
         {
-            bool hasDestination = inst.Blackboard[SymbolHasDestination];
-            if (hasDestination)
+            switch (inst.Blackboard[SymbolState])
             {
-                int dest = inst.Blackboard[SymbolDestination];
-                TileType tile = GameInstance.Instance.World.GetTile(dest);
-                if (tile == null || !tile.HasProperty(TileProperties.Spawn))
-                {
-                    UpdateDestination(inst, guest);
-                }
+                case StateCheckHeldObject:
+                    if (guest.HeldObjects.Count > 0)
+                    {
+                        inst.Blackboard[SymbolState] = StateFindHeldObjectDropPoint;
+                    }
+                    else
+                    {
+                        inst.Blackboard[SymbolState] = StateLeave;
+                    }
 
-                Action activeAction = inst.Blackboard[SymbolActiveAction];
-                if (activeAction == null)
-                {
-                    dest = inst.Blackboard[SymbolDestination];
-                    activeAction = new AMoveTo(GameInstance.Instance.World.GetPosition(dest));
-                    inst.Blackboard[SymbolActiveAction] = activeAction;
-                }
+                    break;
+                case StateFindHeldObjectDropPoint:
+                    Point3 guestPos = GameInstance.Instance.World.GetPosition(guest.WorldPosition);
+                    int worldIndex;
+                    if (FindClosestTileWithProperties(guestPos, TileProperties.Navigable, out worldIndex))
+                    {
+                        Point3 worldPos = GameInstance.Instance.World.GetPosition(worldIndex);
+                        inst.Blackboard[SymbolActiveAction] = new AMoveTo(worldPos);
+                        inst.Blackboard[SymbolState] = StateMoveToHeldObjectDropPoint;
+                        return false;
+                    }
 
-                activeAction.Tick(guest);
-                if (activeAction.IsComplete())
-                {
-                    guest.PendingRemoval = true;
-                    return true;
-                }
+                    break;
+                case StateMoveToHeldObjectDropPoint:
+                    Action moveAction = inst.Blackboard[SymbolActiveAction];
+                    if (moveAction == null)
+                    {
+                        inst.Blackboard[SymbolState] = StateCheckHeldObject;
+                        return false;
+                    }
+
+                    if (moveAction.Tick(guest) == EActionState.SUCCESS)
+                    {
+                        inst.Blackboard[SymbolActiveAction] = new APutDown(guest, guest.HeldObjects[0], false);
+                        inst.Blackboard[SymbolState] = StateDropHeldObject;
+                        return false;
+                    }
+
+                    break;
+                case StateDropHeldObject:
+                    Action dropAction = inst.Blackboard[SymbolActiveAction];
+                    if (dropAction == null)
+                    {
+                        inst.Blackboard[SymbolState] = StateCheckHeldObject;
+                        break;
+                    }
+
+                    if (dropAction.Tick(guest) == EActionState.SUCCESS)
+                    {
+                        inst.Blackboard[SymbolState] = StateLeave;
+                        return false;
+                    }
+
+                    break;
+                case StateLeave:
+                    bool hasDestination = inst.Blackboard[SymbolHasDestination];
+                    if (hasDestination)
+                    {
+                        int dest = inst.Blackboard[SymbolDestination];
+                        TileType tile = GameInstance.Instance.World.GetTile(dest);
+                        if (tile == null || !tile.HasProperty(TileProperties.Spawn))
+                        {
+                            UpdateDestination(inst, guest);
+                        }
+
+                        Action activeAction = inst.Blackboard[SymbolActiveAction];
+                        if (activeAction == null)
+                        {
+                            dest = inst.Blackboard[SymbolDestination];
+                            activeAction = new AMoveTo(GameInstance.Instance.World.GetPosition(dest));
+                            inst.Blackboard[SymbolActiveAction] = activeAction;
+                        }
+
+                        activeAction.Tick(guest);
+                        if (activeAction.IsComplete())
+                        {
+                            if (guest.HeldObjects.Count > 0)
+                            {
+                                // never leave with held objects
+                                inst.Blackboard[SymbolState] = StateCheckHeldObject;
+                                break;
+                            }
+
+                            guest.PendingRemoval = true;
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        UpdateDestination(inst, guest);
+                    }
+                    break;
             }
-            else
-            {
-                UpdateDestination(inst, guest);
-            }
+
 
             return false;
         }
@@ -408,7 +485,10 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             // TODO: Desired location logic
-                            List<int> destinations = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Navigable);
+                            List<int> destinations = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Navigable)
+                                .Where(GameInstance.Instance.CanExerciseOnTile)
+                                .ToList();
+
                             int index = Random.Shared.Next(destinations.Count);
                             action = new AMoveTo(GameInstance.Instance.World.GetPosition(destinations[index]));
                             inst.Blackboard[SymbolActiveAction] = action;
@@ -620,7 +700,8 @@ namespace GymTycoon.Code.AI
                         if (action.Tick(guest) == EActionState.FAILED)
                         {
                             // TODO: Handle failed move (don't eat the gear!)
-                            return true;
+                            Reset(inst);
+                            return false;
                         }
 
                         break;

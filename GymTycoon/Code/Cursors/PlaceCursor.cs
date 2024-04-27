@@ -69,6 +69,8 @@ namespace GymTycoon.Code.Cursors
                     GameInstance.Instance.World.AddDynamicObject(obj);
                     DidPlace = true;
 
+                    GameInstance.Instance.UpdateZoneForObjectType(obj.Data.Category);
+
                     if (GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputMultiPlace).IsDown)
                     {
                         GameInstance.Instance.Cursor.SetCursor(new PlaceCursor(this));

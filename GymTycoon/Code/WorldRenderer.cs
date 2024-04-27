@@ -1,6 +1,7 @@
 ﻿using GymTycoon.Code.AI;
 using GymTycoon.Code.Common;
 using GymTycoon.Code.Cursors;
+using GymTycoon.Code.Data;
 using GymTycoon.Code.DebugTools;
 using ImGuiNET;
 using Microsoft.Xna.Framework;
@@ -31,11 +32,18 @@ namespace GymTycoon.Code
         private const float _depthBurst                         = 0.0041f;
         private const float _depthGhost                         = 0.0042f;
         private const float _depthBeautyOverlay                 = 0.0043f;
-        private const float _depthDebugDraw                     = 0.0044f;
+        private const float _depthZoneOverlay                   = 0.0044f;
+        private const float _depthDebugDraw                     = 0.0045f;
 
         private readonly Color _validGhostColor = new(0.6f, 0.6f, 0.6f);
         private readonly Color _invalidGhostColor = new(0.6f, 0.2f, 0.2f);
         private readonly Color _semiTransparent = new(0.25f, 0.25f, 0.25f, 0.1f);
+
+        private readonly Dictionary<DynamicObjectCategory, Color> _zoneColors = new()
+        {
+            { DynamicObjectCategory.Toilet, Color.Cyan },
+            { DynamicObjectCategory.Reception, Color.Cornsilk }
+        };
 
         private SpriteBatch _spriteBatch;
 
@@ -59,6 +67,7 @@ namespace GymTycoon.Code
         private bool _drawHitboxes = false;
         private bool _drawBeauty = false;
         private bool _drawSocial = false;
+        private bool _drawZones = false;
         private bool _drawBlockedSpaces = false;
         private bool _drawGuestSlots = false;
 
@@ -384,7 +393,7 @@ namespace GymTycoon.Code
 
                     float hue = MathHelper.Lerp(0.5f, 1f, beautyPct);
                     Color color = new HSVColor(hue, 1f, 1f).ToColor(0.24f);
-                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthDebugDraw, 0, 0, color); 
+                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthBeautyOverlay, 0, 0, color); 
                 }
             }
             else if (_drawSocial)
@@ -403,7 +412,29 @@ namespace GymTycoon.Code
 
                     float hue = MathHelper.Lerp(0.5f, 1f, socialPct);
                     Color color = new HSVColor(hue, 1f, 1f).ToColor(0.24f);
-                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthDebugDraw, 0, 0, color);
+                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthZoneOverlay, 0, 0, color);
+                }
+            }
+            else if (_drawZones)
+            {
+                foreach (var kvp in game.Zones)
+                {
+                    DynamicObjectCategory category = kvp.Key;
+                    Color color;
+                    if (!_zoneColors.TryGetValue(category, out color))
+                    {
+                        color = Color.Orange;
+                    }
+
+                    color.A = (byte)100;
+                    foreach (var index in kvp.Value.Data)
+                    {
+                        Point3 worldPosition = game.World.GetPosition(index);
+                        int tileDepth = GetDepth(worldPosition, worldSize.X, worldSize.Y);
+                        float tileDepthPct = (float)tileDepth / (float)(maxDepth - minDepth);
+
+                        DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthDebugDraw, 0, 0, color);
+                    }
                 }
             }
 
@@ -553,14 +584,19 @@ namespace GymTycoon.Code
             ImGui.Checkbox("Transparency", ref _enableTransparency);
             ImGui.Checkbox("Draw Hitboxes", ref _drawHitboxes);
 
-            if (!_drawSocial)
+            if (!_drawSocial && !_drawZones)
             {
                 ImGui.Checkbox("Draw Beauty", ref _drawBeauty);
             }
 
-            if (!_drawBeauty)
+            if (!_drawBeauty && !_drawZones)
             {
                 ImGui.Checkbox("Draw Social", ref _drawSocial);
+            }
+
+            if (!_drawBeauty && !_drawSocial)
+            {
+                ImGui.Checkbox("Draw Zones", ref _drawZones);
             }
 
             ImGui.Checkbox("Draw Blocked Spaces", ref _drawBlockedSpaces);
