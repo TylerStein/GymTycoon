@@ -29,6 +29,8 @@ namespace GymTycoon.Code
         public const string SymbolInputDebug = "Debug";
         public const string SymbolInputRotate = "Rotate";
         public const string SymbolInputDelete = "Delete";
+        public const string SymbolInputMultiPlace = "MultiPlace";
+        public const string SymbolInputAltSelect = "AltSelect";
 
         public World World;
         public Resources Resources;
@@ -45,6 +47,7 @@ namespace GymTycoon.Code
         public Build Build;
         public Stats Stats;
         public Scenario Scenario;
+        public NeedsManager NeedsManager;
 
         private readonly int _cameraMoveSpeed = 10;
         private readonly float _cameraZoomSpeed = 0.1f;
@@ -75,6 +78,7 @@ namespace GymTycoon.Code
             Cursor = new Cursor();
             Build = new Build();
             Stats = new Stats();
+            NeedsManager = new NeedsManager();
             Scenario = scenario;
 
             Economy.PlayerMoney = scenario.StartingCapital;
@@ -83,6 +87,8 @@ namespace GymTycoon.Code
             Economy.InitialBoostDecayRate = scenario.InitialBoostDecayRate;
             Economy.MarketingDecayRate = scenario.MarketingDecayRate;
             Economy.NewEquipmentValueDecayRate = scenario.NewEquipmentDecayRate;
+
+            NeedsManager.AddNeedDefs(NeedsManager.DefaultNeedDefs);
 
             Time.SetDate(scenario.StartDate, 0);
         }
@@ -105,6 +111,8 @@ namespace GymTycoon.Code
             Input.RegisterBinaryActionKey(SymbolInputDebug, Keys.OemTilde, inputFilter);
             Input.RegisterBinaryActionKey(SymbolInputRotate, Keys.R, inputFilter);
             Input.RegisterBinaryActionKey(SymbolInputDelete, Keys.Delete, inputFilter);
+            Input.RegisterBinaryActionKey(SymbolInputMultiPlace, Keys.LeftShift, inputFilter);
+            Input.RegisterBinaryActionMouseButton(SymbolInputAltSelect, MouseButton.Right, inputFilter);
 
             IsMouseVisible = false;
             Window.AllowUserResizing = true;
@@ -138,9 +146,9 @@ namespace GymTycoon.Code
             if (Input.GetBinaryAction(SymbolInputDebug).Pressed)
             {
                 Input.LockMouse = !Input.LockMouse;
-                IsMouseVisible = Input.LockMouse;
             }
 
+            IsMouseVisible = Input.LockMouse || Input.MouseIsOnGui;
             DeltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds * Time.GetTimeScale();
 
             bool tick = false;

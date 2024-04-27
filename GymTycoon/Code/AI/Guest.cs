@@ -8,13 +8,6 @@ using GymTycoon.Code.Data;
 
 namespace GymTycoon.Code.AI
 {
-    public enum NeedType
-    {
-        Toilet,
-        Rest,
-        Beauty
-    }
-
     public class OffscreenGuest
     {
         public const float MinLifetimeHappiness = -100;
@@ -31,16 +24,24 @@ namespace GymTycoon.Code.AI
         public WealthTier WealthTier;
         public Schedule Schedule;
         public Routine Routine;
-        public Preferences Preferences;
-        public NeedModifier NeedModifier;
+        public float? SpeedModifier;
+        public float? TidynessModifier;
+        public Dictionary<string, float> BasicNeedModifiers;
+        public Dictionary<string, int> SpawnNeedModifiers;
+        public Dictionary<string, NeedFilter> AdvancedNeedModifiers;
+
         public List<TraitData> Traits;
+
+        public Dictionary<Tag, int> ExerciseExperience;
 
         public OffscreenGuest(IEnumerable<TraitData> traits)
         {
             Schedule = new Schedule();
             Routine = new Routine();
-            Preferences = new Preferences();
-            NeedModifier = new NeedModifier();
+            BasicNeedModifiers = [];
+            SpawnNeedModifiers = [];
+            AdvancedNeedModifiers = [];
+            ExerciseExperience = [];
             WealthTier = WealthTier.Medium;
             Traits = new(traits);
 
@@ -51,19 +52,51 @@ namespace GymTycoon.Code.AI
                     WealthTier = trait.WealthTier.Value;
                 }
 
-                if (trait.PreferenceModifier.HasValue)
+                if (trait.BasicNeedModifiers != null)
                 {
-                    Preferences = Preferences + trait.PreferenceModifier.Value;
+                    foreach (var basicNeedMod in trait.BasicNeedModifiers)
+                    {
+                        if (BasicNeedModifiers.ContainsKey(basicNeedMod.Key))
+                        {
+                            BasicNeedModifiers[basicNeedMod.Key] *= basicNeedMod.Value;
+                        }
+                        else
+                        {
+                            BasicNeedModifiers[basicNeedMod.Key] = basicNeedMod.Value;
+                        }
+                    }
                 }
 
-                if (trait.NeedModifier != null)
+                if (trait.SpawnNeedModifiers != null)
                 {
-                    NeedModifier = NeedModifier + trait.NeedModifier;
+                    foreach (var spawnNeedMod in trait.SpawnNeedModifiers)
+                    {
+                        if (SpawnNeedModifiers.ContainsKey(spawnNeedMod.Key))
+                        {
+                            SpawnNeedModifiers[spawnNeedMod.Key] *= spawnNeedMod.Value;
+                        }
+                        else
+                        {
+                            SpawnNeedModifiers[spawnNeedMod.Key] = spawnNeedMod.Value;
+                        }
+                    }
+                }
+
+                if (trait.AdvancedNeedModifiers != null)
+                {
+                    foreach (var advNeedMod in trait.AdvancedNeedModifiers)
+                    {
+                        Debug.Assert(AdvancedNeedModifiers.ContainsKey(advNeedMod.Key) == false, $"Advanced need modifier for {advNeedMod.Key} is being overridden!");
+
+                        // overrides
+                        AdvancedNeedModifiers[advNeedMod.Key] = advNeedMod.Value;
+                    }
                 }
 
                 if (trait.Routine.HasValue)
                 {
                     Routine = trait.Routine.Value;
+                    Routine.RandomIndex();
                 }
 
                 if (trait.Schedule.HasValue)
@@ -75,6 +108,28 @@ namespace GymTycoon.Code.AI
             Tint = new Color(55 + Random.Shared.Next(0, 200), 55 + Random.Shared.Next(0, 200), 55 + Random.Shared.Next(0, 200), 255);
         }
 
+        public int GetExerciseExperience(Tag exercise)
+        {
+            if (ExerciseExperience.ContainsKey(exercise))
+            {
+                return ExerciseExperience[exercise];
+            }
+
+            ExerciseExperience[exercise] = 0;
+            return 0;
+        }
+
+        public void AddExerciseExperience(Tag exercise, int increment = 1)
+        {
+            if (ExerciseExperience.ContainsKey(exercise))
+            {
+                ExerciseExperience[exercise] += increment;
+            }
+            else
+            {
+                ExerciseExperience[exercise] = increment;
+            }
+        }
 
         public float GetHappinessChangeFromWealthTierVsCost(int cost)
         {
@@ -116,14 +171,10 @@ namespace GymTycoon.Code.AI
 
     public class Guest
     {
-        public const float MinHappiness = -100f;
-        public const float MaxHappiness = 100f;
+        public const float MinHappiness = -1000f;
+        public const float MaxHappiness = 1000f;
 
-        public static float MaxNeed = 100f;
-        public static float MinNeedThreshold = 60f;
-
-        public Dictionary<NeedType, float> NeedsValue = [];
-        public Dictionary<ExerciseProperties, float> ExerciseNeedsValue = [];
+        public Needs Needs;
 
         public int WorldPosition;
         public bool PendingRemoval;
@@ -148,7 +199,7 @@ namespace GymTycoon.Code.AI
         public int Money = 0;
         public int RemainingStayTime = 5;
 
-        public float MinAvgNeeds = MaxNeed;
+        public float MinAvgNeeds = Needs.MinValue;
         public float MaxAvgNeeds = 0;
 
         public OffscreenGuest OffscreenGuest;
@@ -157,22 +208,15 @@ namespace GymTycoon.Code.AI
         public Guest(OffscreenGuest offscreenGuest, int worldIndex, SpriteInstance sprite)
         {
             WorldPosition = worldIndex;
-            NeedsValue = [];
             OffscreenGuest = offscreenGuest;
-            foreach (NeedType e in Enum.GetValues(typeof(NeedType)))
-            {
-                NeedsValue[e] = MaxNeed;
-            }
-
-            foreach (ExerciseProperties prop in Enum.GetValues(typeof(ExerciseProperties)))
-            {
-                if (prop != ExerciseProperties.None && prop != ExerciseProperties.All)
-                {
-                    ExerciseNeedsValue[prop] = MaxNeed;
-                }
-            }
-
             Sprite = sprite;
+
+            // TODO: initial needs values!
+            Needs = GameInstance.Instance.NeedsManager.CreateNeeds();
+            foreach (var spawnModifier in offscreenGuest.SpawnNeedModifiers)
+            {
+                Needs[spawnModifier.Key] = spawnModifier.Value;
+            }
         }
 
         public void Update(float deltaTime)
@@ -278,50 +322,19 @@ namespace GymTycoon.Code.AI
             }
         }
 
-        public float GetBaseDecayRate(NeedType needType)
-        {
-            switch(needType)
-            {
-                case NeedType.Beauty:
-                    return GameInstance.Instance.World.GetBeautyAt(WorldPosition);
-                case NeedType.Rest:
-                    return 0f;
-                case NeedType.Toilet:
-                    return -1f;
-                default:
-                    return 0f;
-            }
-        }
-
-        public float GetExerciseDecayRate(ExerciseProperties prop)
-        {
-            return -1f;
-        }
-
         public void TickNeeds()
         {
             AverageNeeds = 0f;
             int count = 0;
 
-            foreach (var kvp in NeedsValue)
+            NeedsManager needsMgr = GameInstance.Instance.NeedsManager;
+            foreach (var kvp in Needs.All())
             {
-                ModifyNeed(kvp.Key, GetBaseDecayRate(kvp.Key));
-                AverageNeeds += NeedsValue[kvp.Key];
-                count++;
-            }
-
-            {
-                float exerciseTotal = 0;
-                int exerciseCount = 0;
-                foreach (var inner in ExerciseNeedsValue)
-                {
-                    ModifyExerciseNeed(inner.Key, GetExerciseDecayRate(inner.Key));
-                    exerciseTotal += ExerciseNeedsValue[inner.Key];
-                    exerciseCount++;
-                }
-
-                float avgExercise = exerciseTotal / exerciseCount;
-                AverageNeeds += avgExercise;
+                int value = Needs[kvp.Key] + needsMgr.GetIdleChangeRate(kvp.Key);
+                Needs[kvp.Key] = needsMgr.Clamp(kvp.Key, value);
+                float eval = needsMgr.EvaluateHappinessFunction(kvp.Key, kvp.Value);
+                Happiness -= eval;
+                AverageNeeds += Needs[kvp.Key];
                 count++;
             }
 
@@ -334,26 +347,6 @@ namespace GymTycoon.Code.AI
             if (AverageNeeds > MaxAvgNeeds)
             {
                 MaxAvgNeeds = AverageNeeds;
-            }
-
-            
-
-            if (NeedsValue[NeedType.Toilet] < 50)
-            {
-                float rate = (0.5f - (NeedsValue[NeedType.Toilet] / 50f));
-                Happiness -= rate;
-            }
-
-            if (NeedsValue[NeedType.Rest] < 50)
-            {
-                float rate = (0.5f - (NeedsValue[NeedType.Rest] / 50f));
-                Happiness -= rate;
-            }
-
-            if (NeedsValue[NeedType.Beauty] < 50)
-            {
-                float rate = OffscreenGuest.Preferences.Beauty * (0.5f - (NeedsValue[NeedType.Beauty] / 50f));
-                Happiness -= rate;
             }
         }
 
@@ -376,14 +369,14 @@ namespace GymTycoon.Code.AI
         public void FindBehavior()
         {
             AdvertisedBehavior bestBehavior = null;
-            float bestUtlity = float.MinValue;
+            float bestUtility = float.MinValue;
 
             foreach (AdvertisedBehavior behavior in GameInstance.Instance.World.GetAdvertisedBehaviors())
             {
                 float utility = behavior.GetUtility(this);
-                if (utility > bestUtlity)
+                if (utility > bestUtility)
                 {
-                    bestUtlity = utility;
+                    bestUtility = utility;
                     bestBehavior = behavior;
                 }
             }
@@ -473,7 +466,7 @@ namespace GymTycoon.Code.AI
             }
             if (ImGui.CollapsingHeader("Needs"))
             {
-                foreach (var kvp in NeedsValue)
+                foreach (var kvp in Needs.All())
                 {
                     ImGui.Text($"{kvp.Key} = {kvp.Value}");
                 }
@@ -484,6 +477,14 @@ namespace GymTycoon.Code.AI
                 foreach (var trait in OffscreenGuest.Traits)
                 {
                     ImGui.Text($"{trait.Name}");
+                }
+            }
+
+            if (ImGui.CollapsingHeader("Experience"))
+            {
+                foreach (var kvp in OffscreenGuest.ExerciseExperience)
+                {
+                    ImGui.Text($"{kvp.Key} = {kvp.Value}");
                 }
             }
 
@@ -530,26 +531,6 @@ namespace GymTycoon.Code.AI
         {
             Point3 worldPos = GameInstance.Instance.World.GetPosition(WorldPosition);
             GameInstance.Instance.WorldRenderer.AddBurst(worldPos, burstType, life);
-        }
-
-        public void ModifyNeed(NeedType needType, float delta)
-        {
-            SetNeed(needType, NeedsValue[needType] + delta);
-        }
-
-        public void SetNeed(NeedType needType, float value)
-        {
-            NeedsValue[needType] = MathF.Min(MaxNeed, MathF.Max(0, value));
-        }
-
-        public void ModifyExerciseNeed(ExerciseProperties prop, float delta)
-        {
-            SetExerciseNeed(prop, ExerciseNeedsValue[prop] + delta);
-        }
-
-        public void SetExerciseNeed(ExerciseProperties prop, float value)
-        {
-            ExerciseNeedsValue[prop] = MathF.Min(MaxNeed, MathF.Max(0, value));
         }
 
         public void AnimateIdle()

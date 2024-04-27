@@ -1,4 +1,5 @@
-﻿using ImGuiNET;
+﻿using GymTycoon.Code.Common;
+using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,6 +73,15 @@ namespace GymTycoon.Code
             Rating.DrawImGui();
             ImGui.Separator();
             Money.DrawImGui();
+            ImGui.Separator();
+            if (ImGui.CollapsingHeader("Tags"))
+            {
+                ImGui.Text($"({Tag.CountAllTags()})");
+                foreach (string tag in Tag.All())
+                {
+                    ImGui.Text(tag);
+                }
+            }
             ImGui.End();
         }
     }

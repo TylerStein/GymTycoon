@@ -11,10 +11,14 @@ namespace GymTycoon.Code.Cursors
         public Direction PlaceDirection = Direction.SOUTH;
         public bool DidPlace = false;
 
-        public PlaceCursor(
-            DynamicObject objectType
-            ) {
+        public PlaceCursor(DynamicObject objectType) {
             PlaceObjectType = objectType;
+        }
+
+        public PlaceCursor(PlaceCursor other)
+        {
+            PlaceObjectType = other.PlaceObjectType;
+            PlaceDirection = other.PlaceDirection;
         }
 
         public virtual void Initialize()
@@ -40,10 +44,17 @@ namespace GymTycoon.Code.Cursors
                 Rotate();
             }
 
-            if (GameInstance.Instance.Input.MouseIsOnScreen && GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputSelect).Pressed)
+            if (GameInstance.Instance.Input.MouseIsOnScreen)
             {
-                // select
-                Place();
+                if (GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputSelect).Pressed)
+                {
+                    // select
+                    Place();
+                }
+                else if (GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputAltSelect).Pressed)
+                {
+                    GameInstance.Instance.Cursor.SetCursor(new SelectCursor());
+                }
             }
         }
 
@@ -56,8 +67,15 @@ namespace GymTycoon.Code.Cursors
                 {
                     DynamicObjectInstance obj = GameInstance.Instance.Instances.InstantiateDynamicObject(PlaceObjectType, position, PlaceDirection, GameInstance.Instance.World);
                     GameInstance.Instance.World.AddDynamicObject(obj);
-                    GameInstance.Instance.Cursor.SetCursor(new SelectCursor(obj));
                     DidPlace = true;
+
+                    if (GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputMultiPlace).IsDown)
+                    {
+                        GameInstance.Instance.Cursor.SetCursor(new PlaceCursor(this));
+                        return;
+                    }
+
+                    GameInstance.Instance.Cursor.SetCursor(new SelectCursor(obj));
                     return;
                 }
                 else

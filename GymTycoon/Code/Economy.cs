@@ -1,6 +1,7 @@
 ﻿using GymTycoon.Code.AI;
 using GymTycoon.Code.Common;
 using ImGuiNET;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,27 +49,27 @@ namespace GymTycoon.Code
 
         public int GymRating = 0;
 
-        private float _avgNeeds = 0f;
+        public float Happiness = 0f;
 
         public void Update(float deltaTime)
         {
+            float happinessAdjust = 0f;
             if (GameInstance.Instance.Director.ActiveGuests.Count > 0)
             {
-                _avgNeeds = 0f;
                 foreach (Guest guest in GameInstance.Instance.Director.ActiveGuests)
                 {
-                    _avgNeeds += guest.AverageNeeds;
+                    happinessAdjust += guest.Happiness * 0.001f;
                 }
-
-                _avgNeeds /= GameInstance.Instance.Director.ActiveGuests.Count;
             }
+
+            Happiness = MathHelper.Clamp(Happiness + (happinessAdjust * deltaTime), -200f, 200f);            
 
             Decay(ref MarketingBoost, MarketingDecayRate, deltaTime);
             Decay(ref NewEquipmentValueBoost, NewEquipmentValueDecayRate, deltaTime);
             Decay(ref InitialBoost, InitialBoostDecayRate, deltaTime);
 
             GymRating = (int)MathF.Round(
-                (_avgNeeds * 0.4f) +
+                (Happiness * 0.02f) +
                 (MarketingBoost * 0.2f) +
                 (NewEquipmentValueBoost * 0.2f) +
                 (InitialBoost * 0.2f)
@@ -148,7 +149,7 @@ namespace GymTycoon.Code
                 }
 
                 ImGui.Separator();
-                ImGui.Text($"AvgNeeds: {_avgNeeds}");
+                ImGui.Text($"Happiness: {Happiness}");
                 ImGui.Text($"InitialBoost: {InitialBoost}");
                 ImGui.Text($"MarketingBoost: {MarketingBoost}");
                 ImGui.Text($"NewEquipmentBoost: {NewEquipmentValueBoost}");

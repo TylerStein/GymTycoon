@@ -1,92 +1,10 @@
-﻿using GymTycoon.Code.AI;
+﻿using GymTycoon.Code.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace GymTycoon.Code.Data
 {
-
-    public struct NeedModifier
-    {
-        public Dictionary<NeedType, float> Modifier = [];
-
-        public NeedModifier()
-        {
-        }
-
-        public static NeedModifier operator +(NeedModifier value1, NeedModifier value2)
-        {
-            return value1 + value2.Modifier;
-        }
-
-        public static NeedModifier operator +(NeedModifier value1, Dictionary<NeedType, float> value2)
-        {
-            NeedModifier mod = new();
-            foreach (var kvp in value1.Modifier)
-            {
-                if (value2.ContainsKey(kvp.Key))
-                {
-                    mod.Modifier[kvp.Key] = kvp.Value + value2[kvp.Key];
-                }
-            }
-
-            return mod;
-        }
-    }
-
-    public struct Preferences
-    {
-        public float Beauty = 1f;
-        public float Tidy = 1f;
-        public float Speed = 1f;
-        public float Social = 1f;
-        public Dictionary<ExerciseProperties, float> Exercise = new Dictionary<ExerciseProperties, float>()
-        {
-            { ExerciseProperties.Cardio, 1f },
-            { ExerciseProperties.Quads, 1f },
-            { ExerciseProperties.Hams, 1f },
-            { ExerciseProperties.Abs, 1f },
-            { ExerciseProperties.Triceps, 1f },
-            { ExerciseProperties.Biceps, 1f },
-            { ExerciseProperties.Chest , 1f },
-            { ExerciseProperties.UpperBack, 1f },
-            { ExerciseProperties.LowerBack, 1f },
-            { ExerciseProperties.Shoulders, 1f },
-            { ExerciseProperties.Glutes, 1f },
-            { ExerciseProperties.Freeweights, 1f },
-            { ExerciseProperties.Yoga, 1f },
-            { ExerciseProperties.Stretches, 1f },
-        };
-
-        public Preferences() { }
-
-        public static Preferences operator *(Preferences value1, Preferences value2)
-        {
-            Preferences res = new();
-            res.Beauty = value1.Beauty * value2.Beauty;
-            res.Tidy = value1.Tidy * value2.Tidy;
-            res.Speed = value1.Speed * value2.Speed;
-            foreach (var item in res.Exercise)
-            {
-                res.Exercise[item.Key] = value1.Exercise[item.Key] * value2.Exercise[item.Key];
-            }
-            return res;
-        }
-
-        public static Preferences operator +(Preferences value1, Preferences value2)
-        {
-            Preferences res = new();
-            res.Beauty = value1.Beauty + value2.Beauty;
-            res.Tidy = value1.Tidy + value2.Tidy;
-            res.Speed = value1.Speed + value2.Speed;
-            foreach (var item in res.Exercise)
-            {
-                res.Exercise[item.Key] = value1.Exercise[item.Key] + value2.Exercise[item.Key];
-            }
-            return res;
-        }
-    }
-
     public struct Schedule
     {
         public static Dictionary<string, Schedule> DefaultTimeWindows = new()
@@ -133,33 +51,62 @@ namespace GymTycoon.Code.Data
 
     public struct Routine
     {
-        public static Dictionary<string, ExerciseProperties[]> DefaultRoutines = new()
+        public static Dictionary<string, List<Tag>[]> DefaultRoutines = new()
         {
-            { "UpperLower", new ExerciseProperties[]{ ExercisePropertyGroups.UpperBody, ExercisePropertyGroups.LowerBody } },
-            { "PushPullLower", new ExerciseProperties[]{ ExercisePropertyGroups.Push, ExercisePropertyGroups.Pull, ExercisePropertyGroups.LowerBody } },
-            { "FulLBody", new ExerciseProperties[] { ExercisePropertyGroups.Strength } },
-            { "Cardio", new ExerciseProperties[] { ExercisePropertyGroups.Cardio } },
-            { "Yoga", new ExerciseProperties[] { ExerciseProperties.Yoga } },
+            { "UpperLower", new List<Tag>[] { ExercisePropertyGroups.UpperBody, ExercisePropertyGroups.LowerBody } },
+            { "PushPullLower", new List<Tag>[] { ExercisePropertyGroups.Push, ExercisePropertyGroups.Pull, ExercisePropertyGroups.LowerBody } },
+            { "FulLBody", new List<Tag>[] { ExercisePropertyGroups.Strength } },
+            { "Cardio", new List<Tag>[] { ExercisePropertyGroups.Cardio } },
+            { "Yoga", new List<Tag>[] { ExercisePropertyGroups.Yoga } },
         };
 
-        List<ExerciseProperties> Data;
+        private List<Tag>[] _data;
+        private int _index = 0;
+
         public Routine(string defaultRoutine) : this(DefaultRoutines[defaultRoutine]) { }
 
-        public Routine(ExerciseProperties[] routine)
+        public Routine(List<Tag>[] routine)
         {
-            Data = new List<ExerciseProperties>(routine);
+            _data = routine;
+            _index = 0;
         }
+
+        public List<Tag> Pop()
+        {
+            int idx = _index;
+            _index++;
+            if (_index >= _data.Length)
+            {
+                _index = 0;
+            }
+            return _data[idx];
+        }
+
+        public void RandomIndex()
+        {
+            _index = Random.Shared.Next(0, _data.Length - 1);
+        }
+    }
+
+    public class NeedFilter
+    {
+        public List<Tag> Tags = [];
+        public float Modifier = 0;
     }
 
     public class TraitData
     {
         public string Name;
         public int Cost;
-        public Preferences? PreferenceModifier;
-        public Dictionary<NeedType, float> NeedModifier;
         public Schedule? Schedule;
         public Routine? Routine;
         public WealthTier? WealthTier;
+        public float? SpeedModifier;
+        public float? TidynessModifier;
+        public Dictionary<string, float> BasicNeedModifiers;
+        public Dictionary<string, int> SpawnNeedModifiers;
+        public Dictionary<string, NeedFilter> AdvancedNeedModifiers;
+        public Dictionary<string, float> DecayRateModifiers;
     }
 
     public static class DefaultTraits
@@ -167,8 +114,9 @@ namespace GymTycoon.Code.Data
         public static Dictionary<string, List<TraitData>> TraitGroups = new()
         {
             { "Social", new List<TraitData>() { TExtrovert, TIntrovert } },
-            { "Speed", new List<TraitData>() { TFast, TSlow} },
-            { "Tidy", new List<TraitData>() { TTidy, TMessy} },
+            { "Speed", new List<TraitData>() { TFast, TSlow } },
+            { "Tidy", new List<TraitData>() { TTidy, TMessy } },
+            { "Energy", new List<TraitData>() { TEnergetic, TSluggish } },
         };
 
         public static TraitData GetRandomScheduleTraitForTime(int hour)
@@ -191,9 +139,33 @@ namespace GymTycoon.Code.Data
 
             return new TraitData()
             {
-                Name = $"Routine({key})",
+                Name = $"Schedule: {key}",
                 Cost = 0,
                 Schedule = Schedule.DefaultTimeWindows[key],
+            };
+        }
+
+        public static TraitData GetRandomRoutine()
+        {
+            int rng = Random.Shared.Next(0, Routine.DefaultRoutines.Count);
+            string key = Routine.DefaultRoutines.Keys.ToList()[rng];
+            Routine routine = new Routine(key);
+            return new TraitData()
+            {
+                Name = $"Routine: {key}",
+                Cost = 0,
+                Routine = routine,
+            };
+        }
+
+        public static TraitData GetRandomWealthTier()
+        {
+            WealthTier tier = (WealthTier)Random.Shared.Next((int)WealthTier.Low, (int)WealthTier.Premium);
+            return new TraitData()
+            {
+                Name = $"Wealth: {tier}",
+                Cost = 0,
+                WealthTier = tier,
             };
         }
 
@@ -201,42 +173,60 @@ namespace GymTycoon.Code.Data
         {
             Name = "Introvert",
             Cost = 1,
-            PreferenceModifier = new() { Social = -1f },
+            BasicNeedModifiers = new() { { "Social", -0.5f } }, // social scales at -1x (negative influence)
+            SpawnNeedModifiers = new() { { "Social", -100 } } // spawn with -100 social
         };
 
         public static TraitData TExtrovert = new TraitData()
         {
             Name = "Extrovert",
             Cost = 1,
-            PreferenceModifier = new() { Social = 2f },
+            BasicNeedModifiers = new() { { "Social", 1.5f } }, // social scales at 1.5x
+            SpawnNeedModifiers = new() { { "Social", 100 } } // spawn with +100 social
         };
 
         public static TraitData TFast = new TraitData()
         {
             Name = "Fast",
             Cost = 1,
-            PreferenceModifier = new() { Speed = 1.5f },
+            SpeedModifier = 1.5f,
         };
 
         public static TraitData TSlow = new TraitData()
         {
             Name = "Slow",
             Cost = 1,
-            PreferenceModifier = new() { Speed = 0.5f },
+            SpeedModifier = 0.5f
         };
 
         public static TraitData TMessy = new TraitData()
         {
             Name = "Messy",
             Cost = 1,
-            PreferenceModifier = new() { Tidy = -1f },
+            TidynessModifier = 0.5f
         };
 
         public static TraitData TTidy = new TraitData()
         {
             Name = "Tidy",
             Cost = 1,
-            PreferenceModifier = new() { Tidy = 1.5f },
+            TidynessModifier = 1.5f
+        };
+
+        public static TraitData TEnergetic = new TraitData()
+        {
+            Name = "Energetic",
+            Cost = 1,
+            DecayRateModifiers = new() { { "Rest", 1.5f } }, // Rest decreases at 1.5x (idle, resting)
+            BasicNeedModifiers = new() { { "Rest", 0.75f } }, // Rest increases at 0.75x (exercising)
+        };
+
+        public static TraitData TSluggish = new TraitData()
+        {
+            Name = "Sluggish",
+            Cost = 1,
+            DecayRateModifiers = new() { { "Rest", 0.75f } }, // Rest decreases at 0.75x (idle, resting)
+            BasicNeedModifiers = new() { { "Rest", 1.75f } }, // Rest increases at 1.5x (exercising)
         };
     }
 }

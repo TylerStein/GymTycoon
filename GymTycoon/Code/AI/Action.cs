@@ -1,7 +1,5 @@
 ﻿using GymTycoon.Code.Common;
 using GymTycoon.Code.Data;
-using ImGuiNET;
-using Microsoft.Xna.Framework;
 using System;
 
 namespace GymTycoon.Code.AI
@@ -164,7 +162,7 @@ namespace GymTycoon.Code.AI
         // TODO: Real exercise logic
         int countdown = 20;
 
-        public AExercise(Exercise exercise, float modifier)
+        public AExercise(Exercise exercise, float modifier = 1f)
         {
             Exercise = exercise;
             EquipmentModifier = modifier;
@@ -181,11 +179,14 @@ namespace GymTycoon.Code.AI
                 countdown--;
                 guest.Sprite.SetActiveLayerSheet(new ScopedName("Default"), Exercise.Sprites[SpriteIndex]);
 
-                foreach (ExerciseProperties prop in Enum.GetValues(typeof(ExerciseProperties)))
+                foreach (var kvp in Exercise.NeedModifiers)
                 {
-                    if (prop != ExerciseProperties.None && prop != ExerciseProperties.All && Exercise.AvailableExerciseProperties.HasFlag(prop))
+                    if (guest.Needs.HasNeed(kvp.Key))
                     {
-                        guest.ModifyExerciseNeed(prop, Exercise.Fitness[prop] * EquipmentModifier);
+                        int delta = (int)(Exercise.NeedModifiers[kvp.Key] * EquipmentModifier);
+                        guest.Happiness += delta;
+                        guest.Needs.AddValue(kvp.Key, -delta);
+                        guest.Needs.AddValue("Rest", delta);
                     }
                 }
 
@@ -194,6 +195,11 @@ namespace GymTycoon.Code.AI
 
             guest.AnimateIdle();
             guest.AddBurst(EBurstType.Fitness);
+            foreach (var kvp in Exercise.NeedModifiers)
+            {
+                guest.OffscreenGuest.AddExerciseExperience(kvp.Key, 1);
+            }
+
             _isComplete = true;
             return EActionState.SUCCESS;
         }
@@ -223,6 +229,7 @@ namespace GymTycoon.Code.AI
             }
 
             guest.HasCheckedIn = true;
+            guest.Happiness += 100;
             if (guest.OffscreenGuest.LifetimeVisits <= 1)
             {
                 guest.AddBurst(EBurstType.Money);
@@ -244,9 +251,12 @@ namespace GymTycoon.Code.AI
         public override EActionState Tick(Guest guest)
         {
             guest.AnimateIdle();
-            guest.ModifyNeed(NeedType.Toilet, 25);
-            if (guest.NeedsValue[NeedType.Toilet] >= Guest.MaxNeed)
+            guest.Needs.AddValue("Toilet", -25);
+            guest.Happiness += 25;
+
+            if (guest.Needs["Toilet"] <= 0)
             {
+                guest.Needs["Toilet"] = 0;
                 _isComplete = true;
                 return EActionState.SUCCESS;
             }

@@ -103,35 +103,41 @@ namespace GymTycoon.Code.AI
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float NeedUrgency(float max, float value)
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //public static float NeedUrgency(float max, float value)
+        //{
+        //    return max - value;
+        //}
+
+        public static float NeedUrgency(Guest guest, Tag type)
         {
-            return max - value;
+            if (guest.Needs.TryGetValue(type, out int value))
+            {
+                return value;
+            }
+
+            return 0;
         }
 
-        public static float NeedUrgency(Guest guest, NeedType type)
-        {
-            return NeedUrgency(Guest.MaxNeed, guest.NeedsValue[type]);
-        }
-
-        public static float ExerciseNeedUrgency(Guest guest, ExerciseProperties properties)
+        public static float ExerciseNeedUrgency(Guest guest, Dictionary<Tag, int> properties)
         {
             float totalUrgency = 0;
             int totalCount = 0;
-            foreach (ExerciseProperties property in Enum.GetValues(typeof(ExerciseProperties)))
+            foreach (var property in properties)
             {
-                if (property == ExerciseProperties.None
-                    || property == ExerciseProperties.All
-                    || !properties.HasFlag(property))
+                if (guest.Needs.HasNeed(property.Key))
                 {
-                    continue;
+                    totalCount++;
+                    totalUrgency += NeedUrgency(guest, property.Key) * property.Value; // guest need urgency * exercise effectiveness
                 }
-
-                totalCount++;
-                totalUrgency += NeedUrgency(Guest.MaxNeed, guest.ExerciseNeedsValue[property]);
             }
 
-            return totalUrgency / totalCount;
+            if (totalCount == 0)
+            {
+                return int.MinValue;
+            }
+
+            return totalUrgency;
         }
 
         public static float DistancePenalty(int a, int b)
@@ -216,6 +222,16 @@ namespace GymTycoon.Code.AI
                 return true;
             }
 
+            // TODO: revisit resting
+            foreach (var kvp in guest.Needs.All())
+            {
+                if (kvp.Value < 0)
+                {
+                    int setValue = MathHelper.Clamp(kvp.Value + 1, kvp.Value, 0);
+                    guest.Needs.SetValue(kvp.Key, setValue);
+                }
+            }
+
             return false;
         }
     }
@@ -235,12 +251,14 @@ namespace GymTycoon.Code.AI
 
         public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
         {
-            if (guest.AverageNeeds < Guest.MinNeedThreshold || guest.RemainingStayTime < 1)
+            if (guest.Happiness <= Guest.MinHappiness || guest.RemainingStayTime < 1)
             {
                 return float.MaxValue;
             }
 
-            return float.MinValue;
+
+            return guest.AverageNeeds * -1f;
+            // return float.MinValue;
         }
 
 
@@ -322,7 +340,7 @@ namespace GymTycoon.Code.AI
                 return float.MinValue;
             }
 
-            return ExerciseNeedUrgency(guest, behavior.Exercise.AvailableExerciseProperties)
+            return ExerciseNeedUrgency(guest, behavior.Exercise.NeedModifiers)
                 * DistancePenalty(guest, target.WorldPosition)
                 * QueuePenalty(target);
             // * SkillModifier(guest, GuestSkillLevel.Beginner)
@@ -369,7 +387,7 @@ namespace GymTycoon.Code.AI
                             }
                             else
                             {
-                                action = new AExercise(inst.Data.Exercise, inst.Target.Data.Fitness);
+                                action = new AExercise(inst.Data.Exercise, inst.Target.Data.FitnessModifier);
                                 inst.Blackboard[SymbolActiveAction] = action;
                                 inst.Blackboard[SymbolStep] = ExerciseStep;
                                 break;
@@ -432,7 +450,7 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             inst.Blackboard[SymbolStep] = step + 1;
-                            action = new AExercise(inst.Data.Exercise, inst.Target.Data.Fitness);
+                            action = new AExercise(inst.Data.Exercise, inst.Target.Data.FitnessModifier);
                             inst.Blackboard[SymbolActiveAction] = action;
                             break;
                         }
@@ -782,7 +800,7 @@ namespace GymTycoon.Code.AI
                 return float.MinValue;
             }
 
-            return ExerciseNeedUrgency(guest, behavior.Exercise.AvailableExerciseProperties)
+            return ExerciseNeedUrgency(guest, behavior.Exercise.NeedModifiers)
                 * DistancePenalty(guest, target.WorldPosition)
                 * QueuePenalty(target);
             // * SkillModifier(guest, GuestSkillLevel.Beginner)
@@ -829,7 +847,7 @@ namespace GymTycoon.Code.AI
                             }
                             else
                             {
-                                action = new AExercise(inst.Data.Exercise, inst.Target.Data.Fitness);
+                                action = new AExercise(inst.Data.Exercise, inst.Target.Data.FitnessModifier);
                                 inst.Blackboard[SymbolActiveAction] = action;
                                 inst.Blackboard[SymbolStep] = ExerciseStep;
                                 break;
@@ -883,7 +901,7 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             inst.Blackboard[SymbolStep] = step + 1;
-                            action = new AExercise(inst.Data.Exercise, inst.Target.Data.Fitness);
+                            action = new AExercise(inst.Data.Exercise, inst.Target.Data.FitnessModifier);
                             inst.Blackboard[SymbolActiveAction] = action;
                             break;
                         }
@@ -921,7 +939,6 @@ namespace GymTycoon.Code.AI
         private const int StepClaim = 0;
         private const int StepMoveTo = 1;
         private const int StepUse = 2;
-        private const int StepRelease = 3;
 
         public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
         {
@@ -930,7 +947,12 @@ namespace GymTycoon.Code.AI
                 return float.MinValue;
             }
 
-            return NeedUrgency(guest, NeedType.Toilet) * QueuePenalty(target) * DistancePenalty(guest, target.WorldPosition);
+            if (guest.Needs["Toilet"] < 50)
+            {
+                return float.MinValue;
+            }
+
+            return NeedUrgency(guest, "Toilet") * QueuePenalty(target) * DistancePenalty(guest, target.WorldPosition);
         }
 
         public override void Reset(BehaviorInstance inst)
@@ -994,6 +1016,7 @@ namespace GymTycoon.Code.AI
                         Action action = inst.Blackboard[SymbolAction];
                         if (action.IsComplete())
                         {
+                            inst.Target.TryReleaseClaimSlot(guest);
                             inst.Blackboard[SymbolAction] = null;
                             return true;
                         }

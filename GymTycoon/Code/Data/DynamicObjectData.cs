@@ -74,10 +74,13 @@ namespace GymTycoon.Code.Data
         public readonly Point[] GuestSlots;
 
         [JsonProperty]
-        public int Fun;
+        public int FunModifier;
 
         [JsonProperty]
-        public readonly int Fitness;
+        public readonly int FitnessModifier;
+
+        [JsonProperty]
+        public readonly int DifficultyModifier;
 
         /** Vendor Properties */
 
@@ -107,8 +110,9 @@ namespace GymTycoon.Code.Data
         public bool Purchaseable;
 
         public int Beauty;
-        public int Fitness;
-        public int Fun;
+        public int FitnessModifier;
+        public int FunModifier;
+        public int DifficultyModifier;
         public int BuildCost;
 
         public DynamicObjectCategory Category;
@@ -140,8 +144,9 @@ namespace GymTycoon.Code.Data
                 Holdable = data.Holdable,
                 Navigable = data.Navigable,
                 Beauty = data.Beauty,
-                Fitness = data.Fitness,
-                Fun = data.Fun,
+                FitnessModifier = data.FitnessModifier,
+                FunModifier = data.FunModifier,
+                DifficultyModifier = data.DifficultyModifier,
                 BuildCost = data.BuildCost,
                 Category = data.Category,
                 _guestSlots = GenerateSlots(data.GuestSlots),

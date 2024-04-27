@@ -217,9 +217,14 @@ namespace GymTycoon.Code
         {
             OffscreenGuest offscreenGuest = new OffscreenGuest([
                 DefaultTraits.GetRandomScheduleTraitForTime(GameInstance.Instance.Time.GetHour()),
+                DefaultTraits.GetRandomRoutine(),
+                DefaultTraits.GetRandomWealthTier(),
                 new TraitData()
                 {
-                    WealthTier = (WealthTier)Random.Shared.Next((int)WealthTier.Low, (int)WealthTier.Premium),
+                    Name = "Default",
+                    Cost = 0,
+                    SpeedModifier = 1,
+                    TidynessModifier = 1,
                 }
             ]);
             return offscreenGuest;
@@ -244,6 +249,12 @@ namespace GymTycoon.Code
             ActiveGuests.Add(guest);
             guest.OffscreenGuest.LastVisit = GameInstance.Instance.Time.GetDateTime();
             guest.OffscreenGuest.LifetimeVisits++;
+
+            List<Tag> routine = guest.OffscreenGuest.Routine.Pop();
+            foreach (var exercise in routine)
+            {
+                guest.Needs.SetValue(exercise, 100 + guest.OffscreenGuest.GetExerciseExperience(exercise) * 20);
+            }
 
             GameInstance.Instance.Economy.Transaction(GameInstance.Instance.Economy.MembershipPrice, TransactionType.Membership);
             guest.UpdateHappiness(guest.OffscreenGuest.GetHappinessChangeFromWealthTierVsCost(GameInstance.Instance.Economy.MembershipPrice));

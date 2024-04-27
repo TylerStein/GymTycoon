@@ -253,6 +253,7 @@ namespace GymTycoon.Code
         public Point MousePosition;
         public bool LockMouse = false;
         public bool MouseIsOnScreen = false;
+        public bool MouseIsOnGui = false;
 
         public BinaryAction GetBinaryAction(string name)
         {
@@ -338,10 +339,10 @@ namespace GymTycoon.Code
             MouseState mouseState = Mouse.GetState(window);
             ImGuiIOPtr imGuiIoPtr = ImGui.GetIO();
 
-            bool imGuiWantsMouse = imGuiIoPtr.WantCaptureMouse;
+            MouseIsOnGui = imGuiIoPtr.WantCaptureMouse;
             bool imGuiWantsKeyboard = imGuiIoPtr.WantTextInput;
 
-            MouseIsOnScreen = viewport.Contains(MousePosition) && !imGuiWantsMouse;
+            MouseIsOnScreen = viewport.Contains(MousePosition) && !MouseIsOnGui;
 
             InputFilters filters = InputFilters.None;
             if (!MouseIsOnScreen)
@@ -349,7 +350,7 @@ namespace GymTycoon.Code
                 filters |= InputFilters.MouseOnScreen;
             }
 
-            if (imGuiWantsMouse)
+            if (MouseIsOnGui)
             {
                 filters |= InputFilters.MouseNotOnGui;
             }

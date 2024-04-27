@@ -48,21 +48,14 @@ namespace GymTycoon.Code.Data
         public int Efficiency;
         public int Fun;
         public ScopedName[] Sprites;
-        public Dictionary<ExerciseProperties, int> Fitness;
-        public ExerciseProperties AvailableExerciseProperties;
+        public Dictionary<Tag, int> NeedModifiers;
 
         public static Exercise Load(BehaviorExercisesData data, ContentManager content)
         {
-            ExerciseProperties availableExerciseProps = ExerciseProperties.None;
-            Dictionary<ExerciseProperties, int> fitness = [];
+            Dictionary<Tag, int> needModifiers = [];
             foreach (var item in data.Fitness)
             {
-                ExerciseProperties prop;
-                if (Enum.TryParse(item.Key, out prop))
-                {
-                    fitness[prop] = item.Value;
-                    availableExerciseProps |= prop;
-                }
+                needModifiers[item.Key] = item.Value;
             }
 
             Exercise exercise = new Exercise()
@@ -71,8 +64,7 @@ namespace GymTycoon.Code.Data
                 Efficiency = data.Efficiency,
                 Fun = data.Fun,
                 Sprites = data.Sprites.Select((sprite) => new ScopedName(sprite)).ToArray(),
-                AvailableExerciseProperties = availableExerciseProps,
-                Fitness = fitness,
+                NeedModifiers = needModifiers
 
             };
 
