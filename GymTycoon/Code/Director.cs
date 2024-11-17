@@ -253,7 +253,7 @@ namespace GymTycoon.Code
             List<Tag> routine = guest.OffscreenGuest.Routine.Pop();
             foreach (var exercise in routine)
             {
-                guest.Needs.SetValue(exercise, 100 + guest.OffscreenGuest.GetExerciseExperience(exercise) * 20);
+                guest.Needs.SetValue(exercise, 100 + guest.OffscreenGuest.GetExperience(exercise) * 20);
             }
 
             GameInstance.Instance.Economy.Transaction(GameInstance.Instance.Economy.MembershipPrice, TransactionType.Membership);

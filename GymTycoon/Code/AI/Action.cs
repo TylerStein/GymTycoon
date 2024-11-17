@@ -13,7 +13,7 @@ namespace GymTycoon.Code.AI
 
     public interface IAction
     {
-        public EActionState Tick(Guest guest);
+        public EActionState Tick(Agent agent);
         public bool IsValid();
         public bool IsComplete();
     }
@@ -22,7 +22,7 @@ namespace GymTycoon.Code.AI
     {
         protected bool _isValid { get; set; }
         protected bool _isComplete { get; set; }
-        public abstract EActionState Tick(Guest guest);
+        public abstract EActionState Tick(Agent agent);
         public bool IsValid() => _isValid;
         public bool IsComplete() => _isComplete;
     }
@@ -39,17 +39,17 @@ namespace GymTycoon.Code.AI
             Destination = destination;
         }
 
-        public override EActionState Tick(Guest guest)
+        public override EActionState Tick(Agent agent)
         {
-            guest.Sprite.SetActiveLayerSheet(new ScopedName("Default"), new ScopedName("Walk"));
-            if (guest.NavigateTo(Destination))
+            agent.Sprite.SetActiveLayerSheet(new ScopedName("Default"), new ScopedName("Walk"));
+            if (agent.NavigateTo(Destination))
             {
                 _isValid = true;
                 _isComplete = true;
                 return EActionState.SUCCESS;
             }
             
-            if (guest.HasDestination)
+            if (agent.HasDestination)
             {
                 _isValid = true;
                 _isComplete = false;
@@ -69,18 +69,18 @@ namespace GymTycoon.Code.AI
     {
         public DynamicObjectInstance Target = null;
 
-        public APickUp(Guest guest, DynamicObjectInstance target)
+        public APickUp(Agent agent, DynamicObjectInstance target)
         {
             Target = target;
-            _isValid = target.Data.Holdable && !guest.IsHolding(target) && target.Held == false;
+            _isValid = target.Data.Holdable && !agent.IsHolding(target) && target.Held == false;
         }
 
-        public override EActionState Tick(Guest guest)
+        public override EActionState Tick(Agent agent)
         {
-            guest.AnimateIdle();
+            agent.AnimateIdle();
             if (Target.Held)
             {
-                if (guest.IsHolding(Target))
+                if (agent.IsHolding(Target))
                 {
                     _isValid = true;
                     _isComplete = true;
@@ -95,7 +95,7 @@ namespace GymTycoon.Code.AI
             {
                 Target.Racked = false;
                 Target.Parent.UpdateRemainingQuantity(Target, -1);
-                Target.Parent.TryReleaseClaimSlot(guest);
+                Target.Parent.TryReleaseClaimSlot(agent);
             }
             else
             {
@@ -104,7 +104,7 @@ namespace GymTycoon.Code.AI
             }
 
             Target.Held = true;
-            guest.AddHeldObj(Target);
+            agent.AddHeldObj(Target);
             _isComplete = true;
             return EActionState.SUCCESS;
         }
@@ -118,17 +118,17 @@ namespace GymTycoon.Code.AI
         public DynamicObjectInstance Target = null;
         public bool RackAtDestination = false;
 
-        public APutDown(Guest guest, DynamicObjectInstance target, bool rackAtDestination = false)
+        public APutDown(Agent agent, DynamicObjectInstance target, bool rackAtDestination = false)
         {
             Target = target;
-            _isValid = guest.IsHolding(target);
+            _isValid = agent.IsHolding(target);
             RackAtDestination = rackAtDestination;
         }
 
-        public override EActionState Tick(Guest guest)
+        public override EActionState Tick(Agent agent)
         {
-            guest.AnimateIdle();
-            _isValid = guest.RemoveHeldObj(Target);
+            agent.AnimateIdle();
+            _isValid = agent.RemoveHeldObj(Target);
             if (_isValid)
             {
                 if (RackAtDestination && Target.Parent != null)
@@ -136,17 +136,17 @@ namespace GymTycoon.Code.AI
                     Target.WorldPosition = Target.Parent.WorldPosition;
                     Target.Racked = true;
                     Target.Parent.UpdateRemainingQuantity(Target, 1);
-                    Target.Parent.TryReleaseClaimSlot(guest);
+                    Target.Parent.TryReleaseClaimSlot(agent);
                 }
                 else
                 {
-                    Target.WorldPosition = guest.WorldPosition;
+                    Target.WorldPosition = agent.WorldPosition;
                     GameInstance.Instance.World.AddDynamicObject(Target);
-                    Target.WorldPosition = guest.WorldPosition;
+                    Target.WorldPosition = agent.WorldPosition;
                 }
 
                 Target.Held = false;
-                Target.TryReleaseClaimSlot(guest);
+                Target.TryReleaseClaimSlot(agent);
                 _isComplete = true;
                 return EActionState.SUCCESS;
             }
@@ -173,33 +173,33 @@ namespace GymTycoon.Code.AI
             SpriteIndex = Random.Shared.Next(0, exercise.Sprites.Length - 1);
         }
 
-        public override EActionState Tick(Guest guest)
+        public override EActionState Tick(Agent agent)
         {
             // TODO: Pick an exercise, increase needs
             if (countdown > 0)
             {
                 countdown--;
-                guest.Sprite.SetActiveLayerSheet(new ScopedName("Default"), Exercise.Sprites[SpriteIndex]);
+                agent.Sprite.SetActiveLayerSheet(new ScopedName("Default"), Exercise.Sprites[SpriteIndex]);
 
                 foreach (var kvp in Exercise.NeedModifiers)
                 {
-                    if (guest.Needs.HasNeed(kvp.Key))
+                    if (agent.Needs.HasNeed(kvp.Key))
                     {
                         int delta = (int)(Exercise.NeedModifiers[kvp.Key] * EquipmentModifier);
-                        guest.Happiness += delta;
-                        guest.Needs.AddValue(kvp.Key, -delta);
-                        guest.Needs.AddValue("Rest", delta);
+                        agent.Happiness += delta;
+                        agent.Needs.AddValue(kvp.Key, -delta);
+                        agent.Needs.AddValue("Rest", delta);
                     }
                 }
 
                 return EActionState.WAITING;
             }
 
-            guest.AnimateIdle();
-            guest.AddBurst(EBurstType.Fitness);
+            agent.AnimateIdle();
+            agent.AddBurst(EBurstType.Fitness);
             foreach (var kvp in Exercise.NeedModifiers)
             {
-                guest.OffscreenGuest.AddExerciseExperience(kvp.Key, 1);
+                agent.AddExperience(kvp.Key, 1);
             }
 
             _isComplete = true;
@@ -218,9 +218,9 @@ namespace GymTycoon.Code.AI
             _isComplete = false;
         }
 
-        public override EActionState Tick(Guest guest)
+        public override EActionState Tick(Agent agent)
         {
-            guest.AnimateIdle();
+            agent.AnimateIdle();
             if (countdown > 0)
             {
                 countdown--;
@@ -230,11 +230,11 @@ namespace GymTycoon.Code.AI
                 return EActionState.WAITING;
             }
 
-            guest.HasCheckedIn = true;
-            guest.Happiness += 100;
-            if (guest.OffscreenGuest.LifetimeVisits <= 1)
+            agent.HasCheckedIn = true;
+            agent.Happiness += 100;
+            if (agent.OffscreenAgent.LifetimeVisits <= 1)
             {
-                guest.AddBurst(EBurstType.Money);
+                agent.AddBurst(EBurstType.Money);
             }
 
             _isComplete = true;
@@ -250,15 +250,15 @@ namespace GymTycoon.Code.AI
             _isComplete = false;
         }
 
-        public override EActionState Tick(Guest guest)
+        public override EActionState Tick(Agent agent)
         {
-            guest.AnimateIdle();
-            guest.Needs.AddValue("Toilet", -25);
-            guest.Happiness += 25;
+            agent.AnimateIdle();
+            agent.Needs.AddValue("Toilet", -25);
+            agent.Happiness += 25;
 
-            if (guest.Needs["Toilet"] <= 0)
+            if (agent.Needs["Toilet"] <= 0)
             {
-                guest.Needs["Toilet"] = 0;
+                agent.Needs["Toilet"] = 0;
                 _isComplete = true;
                 return EActionState.SUCCESS;
             }

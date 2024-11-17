@@ -8,15 +8,9 @@ using GymTycoon.Code.Data;
 
 namespace GymTycoon.Code.AI
 {
-    public class OffscreenGuest
+    public class OffscreenGuest : OffscreenAgent
     {
-        public const float MinLifetimeHappiness = -100;
-        public const float MaxLifetimeHappiness = 100;
-
-        public float LifetimeHappiness = 0f;
-
         public DateTime LastVisit = new DateTime();
-        public int LifetimeVisits = 0;
 
         public string Name;
         public Color Tint;
@@ -34,7 +28,7 @@ namespace GymTycoon.Code.AI
 
         public Dictionary<Tag, int> ExerciseExperience;
 
-        public OffscreenGuest(IEnumerable<TraitData> traits)
+        public OffscreenGuest(IEnumerable<TraitData> traits) : base()
         {
             Schedule = new Schedule();
             Routine = new Routine();
@@ -108,26 +102,26 @@ namespace GymTycoon.Code.AI
             Tint = new Color(55 + Random.Shared.Next(0, 200), 55 + Random.Shared.Next(0, 200), 55 + Random.Shared.Next(0, 200), 255);
         }
 
-        public int GetExerciseExperience(Tag exercise)
+        public int GetExperience(Tag key)
         {
-            if (ExerciseExperience.ContainsKey(exercise))
+            if (ExerciseExperience.ContainsKey(key))
             {
-                return ExerciseExperience[exercise];
+                return ExerciseExperience[key];
             }
 
-            ExerciseExperience[exercise] = 0;
+            ExerciseExperience[key] = 0;
             return 0;
         }
 
-        public void AddExerciseExperience(Tag exercise, int increment = 1)
+        public void AddExperience(Tag key, int increment = 1)
         {
-            if (ExerciseExperience.ContainsKey(exercise))
+            if (ExerciseExperience.ContainsKey(key))
             {
-                ExerciseExperience[exercise] += increment;
+                ExerciseExperience[key] += increment;
             }
             else
             {
-                ExerciseExperience[exercise] = increment;
+                ExerciseExperience[key] = increment;
             }
         }
 
@@ -169,47 +163,15 @@ namespace GymTycoon.Code.AI
         }
     }
 
-    public class Guest
+    public class Guest : Agent
     {
-        public const float MinHappiness = -1000f;
-        public const float MaxHappiness = 1000f;
-
-        public Needs Needs;
-
-        public int WorldPosition;
-        public bool PendingRemoval;
-        public Stack<Point3> Path = [];
-        public Point3 FinalDestination = Point3.Zero;
-        public bool HasDestination = false;
-        public int AnimFrame = 0;
-        public float AverageNeeds = 0;
-        public List<DynamicObjectInstance> HeldObjects = [];
-        public Stack<BehaviorInstance> _activeBehaviors = [];
-
-        public Vector3 TileOffset = Vector3.Zero;
-        public Vector3 Destination = Vector3.Zero;
-        public float MoveSpeed = 2f; // tiles per second
-
-        public Direction Direction = Direction.SOUTH;
-        public SpriteInstance Sprite;
-
-        public bool HasCheckedIn = false;
-        public float Happiness = 0;
-
         public int Money = 0;
-        public int RemainingStayTime = 5;
 
-        public float MinAvgNeeds = Needs.MinValue;
-        public float MaxAvgNeeds = 0;
+        public OffscreenGuest OffscreenGuest => (OffscreenGuest)OffscreenAgent;
 
-        public OffscreenGuest OffscreenGuest;
-        public bool FollowCam = false;
-
-        public Guest(OffscreenGuest offscreenGuest, int worldIndex, SpriteInstance sprite)
+        public Guest(OffscreenGuest offscreenGuest, int worldIndex, SpriteInstance sprite) : base(worldIndex, sprite)
         {
-            WorldPosition = worldIndex;
-            OffscreenGuest = offscreenGuest;
-            Sprite = sprite;
+            OffscreenAgent = offscreenGuest;
 
             // TODO: initial needs values!
             Needs = GameInstance.Instance.NeedsManager.CreateNeeds();
@@ -219,226 +181,33 @@ namespace GymTycoon.Code.AI
             }
         }
 
-        public void Update(float deltaTime)
+        public override void Update(float deltaTime)
         {
-            Sprite.Update(deltaTime);
+            base.Update(deltaTime);
 
             if (GameInstance.Instance.Time.DidChangeHour)
             {
                 RemainingStayTime--;
             }
-
-            if (HasDestination)
-            {
-                Point3 currentGridPos = GameInstance.Instance.World.GetPosition(WorldPosition);
-                Vector3 currentPosition = currentGridPos.ToVector3() + TileOffset;
-
-                while (deltaTime > 0)
-                {
-                    float dist = Vector3.Distance(Destination, currentPosition);
-                    Vector3 dir = dist == 0 ? Vector3.Zero : Vector3.Normalize(Destination - currentPosition);
-
-                    float distToMove = MoveSpeed * deltaTime;
-                    if (distToMove >= dist)
-                    {
-                        currentPosition = Destination;
-                        deltaTime -= dist / MoveSpeed;
-                        if (Path.Count > 0)
-                        {
-                            Destination = Path.Pop().ToVector3();
-                        }
-                        else
-                        {
-                            HasDestination = false;
-                            deltaTime = 0f;
-                        }
-                    }
-                    else
-                    {
-                        deltaTime = 0f;
-                        if (dist < 0.001f)
-                        {
-                            // at destination
-                            currentPosition = Destination;
-                            if (Path.Count > 0)
-                            {
-                                Destination = Path.Pop().ToVector3();
-                            }
-                            else
-                            {
-                                HasDestination = false;
-                            }
-                        } else
-                        {
-                            currentPosition += dir * distToMove;
-                        }
-                    }
-                }
-
-                SetPosition(currentPosition);
-            }
         }
 
-        public void Tick()
-        {
-            if (PendingRemoval)
-            {
-                return;
-            }
-
-            TickNeeds();
-            TickBehavior();
-        }
-
-        public void AddBehavior(AdvertisedBehavior advertisedBehavior)
-        {
-            AddBehavior(new BehaviorInstance(advertisedBehavior, this));
-        }
-
-        public void AddBehavior(BehaviorInstance behavior)
-        {
-            if (_activeBehaviors.Count > 0)
-            {
-                _activeBehaviors.Peek().Pause();
-            }
-
-            _activeBehaviors.Push(behavior);
-            behavior.Reset();
-        }
-
-        public void RemoveActiveBehavior()
-        {
-            if (_activeBehaviors.Count == 0)
-            {
-                return;
-            }
-
-            BehaviorInstance inst = _activeBehaviors.Pop();
-            inst.Release();
-
-            if (_activeBehaviors.Count > 0)
-            {
-                _activeBehaviors.Peek().Resume();
-            }
-        }
-
-        public void TickNeeds()
-        {
-            AverageNeeds = 0f;
-            int count = 0;
-
-            NeedsManager needsMgr = GameInstance.Instance.NeedsManager;
-            foreach (var kvp in Needs.All())
-            {
-                int value = Needs[kvp.Key] + needsMgr.GetIdleChangeRate(kvp.Key);
-                Needs[kvp.Key] = needsMgr.Clamp(kvp.Key, value);
-                float eval = needsMgr.EvaluateHappinessFunction(kvp.Key, kvp.Value);
-                Happiness -= eval;
-                AverageNeeds += Needs[kvp.Key];
-                count++;
-            }
-
-            AverageNeeds /= count;
-            if (AverageNeeds < MinAvgNeeds)
-            {
-                MinAvgNeeds = AverageNeeds;
-            }
-
-            if (AverageNeeds > MaxAvgNeeds)
-            {
-                MaxAvgNeeds = AverageNeeds;
-            }
-        }
-
-        public void TickBehavior()
-        {
-            if (_activeBehaviors.Count == 0)
-            {
-                FindBehavior();
-                return;
-            }
-
-            // true return means script is complete
-            if (_activeBehaviors.Peek().Tick())
-            {
-                RemoveActiveBehavior();
-                return;
-            }
-        }
-
-        public void FindBehavior()
-        {
-            AdvertisedBehavior bestBehavior = null;
-            float bestUtility = float.MinValue;
-
-            foreach (AdvertisedBehavior behavior in GameInstance.Instance.World.GetAdvertisedBehaviors())
-            {
-                float utility = behavior.GetUtility(this);
-                if (utility > bestUtility)
-                {
-                    bestUtility = utility;
-                    bestBehavior = behavior;
-                }
-            }
-
-            if (bestBehavior == null)
-            {
-                return;
-            }
-
-            AddBehavior(bestBehavior);
-        }
 
         public void Think(string thought)
         {
             Debug.WriteLine($"Thought: {thought}");
         }
 
-        public void SetPosition(Vector3 position)
+        public override int GetExperience(Tag key)
         {
-            Point3 point = new Point3(position);
-            Point3 lastPos = GameInstance.Instance.World.GetPosition(WorldPosition);
-            Point3 dir = (point - lastPos);
-            if (Math.Abs(dir.X) > Math.Abs(dir.Y))
-            {
-                Direction = dir.X > 0 ? Direction.EAST : Direction.WEST;
-            }
-            else
-            {
-                Direction = dir.Y > 0 ? Direction.SOUTH : Direction.NORTH;
-            }
-
-            int nextIndex = GameInstance.Instance.World.GetIndex(point);
-            WorldPosition = nextIndex;
-            TileOffset = new Vector3(position.X % 1f, position.Y % 1f, position.Z % 1f);
-
-            GameInstance.Instance.World.SocialLayer.InvalidateCacheInRadius2D(WorldPosition);
+            return OffscreenGuest.GetExperience(key);
         }
 
-        public bool NavigateTo(Point3 point)
+        public override void AddExperience(Tag key, int increment = 1)
         {
-            Point3 worldPos = GameInstance.Instance.World.GetPosition(WorldPosition);
-            if (worldPos == point)
-            {
-                return true;
-            }
-
-            if (HasDestination && FinalDestination == point)
-            {
-                return false;
-            }
-
-            HasDestination = Navigation.Pathfinding(GameInstance.Instance.World, worldPos, point, Path);
-            if (HasDestination)
-            {
-                FinalDestination = point;
-                Destination = Path.Pop().ToVector3();
-            }
-
-            return false;
+            OffscreenGuest.AddExperience(key, increment);
         }
 
-        public void DrawImGui()
+        public override void DrawImGui()
         {
             ImGui.Begin("Guest");
             ImGui.Text($"Position = {GameInstance.Instance.World.GetPosition(WorldPosition)}");
@@ -447,7 +216,7 @@ namespace GymTycoon.Code.AI
             ImGui.Text($"Destination = {FinalDestination}");
             ImGui.Text($"AvgNeeds = {AverageNeeds}");
             ImGui.Text($"Happiness = {Happiness}");
-            ImGui.Text($"LifetimeHappiness = {OffscreenGuest.LifetimeHappiness}");
+            ImGui.Text($"LifetimeHappiness = {OffscreenAgent.LifetimeHappiness}");
             ImGui.Checkbox("FollowCam", ref FollowCam);
             foreach (var behavior in _activeBehaviors ) { 
                 ImGui.Text($"Behavior = {behavior.Script.GetType()}");
@@ -497,51 +266,5 @@ namespace GymTycoon.Code.AI
             ImGui.End();
         }
 
-        public bool IsHolding(DynamicObjectInstance obj)
-        {
-            return HeldObjects.Contains(obj);
-        }
-
-        public bool IsHoldingObjectOfType(DynamicObject obj)
-        {
-            for (int i = 0; i < HeldObjects.Count; i++)
-            {
-                if (HeldObjects[i] != null && HeldObjects[i].Data == obj)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public void AddHeldObj(DynamicObjectInstance obj)
-        {
-            HeldObjects.Add(obj);
-            obj.HeldBy = this;
-        }
-
-        public bool RemoveHeldObj(DynamicObjectInstance obj)
-        {
-            obj.HeldBy = null;
-            return HeldObjects.Remove(obj);
-        }
-
-        public void AddBurst(EBurstType burstType, float life = 2.5f)
-        {
-            Point3 worldPos = GameInstance.Instance.World.GetPosition(WorldPosition);
-            GameInstance.Instance.WorldRenderer.AddBurst(worldPos, burstType, life);
-        }
-
-        public void AnimateIdle()
-        {
-            Sprite.SetActiveLayerSheet(new ScopedName("Default"), 0);
-        }
-
-        public void UpdateHappiness(float delta)
-        {
-            Happiness = MathHelper.Clamp(Happiness + delta, MinHappiness, MaxHappiness);
-            OffscreenGuest.LifetimeHappiness = MathHelper.Clamp(OffscreenGuest.LifetimeHappiness + delta, OffscreenGuest.MinLifetimeHappiness, OffscreenGuest.MaxLifetimeHappiness);
-        }
     }
 }

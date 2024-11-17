@@ -43,7 +43,7 @@ namespace GymTycoon.Code
 
         public int Condition;
         public int WorldPosition;
-        public Guest[] ClaimSlots;
+        public Agent[] ClaimSlots;
         public string ActiveSpriteAlias;
         public Direction Direction;
         public int PurchaseValue = 0;
@@ -51,7 +51,7 @@ namespace GymTycoon.Code
         public bool Navigable;
 
         public bool Held;
-        public Guest HeldBy;
+        public Agent HeldBy;
 
         public bool Racked;
         public int ParentQuantityIndex = -1;
@@ -71,7 +71,7 @@ namespace GymTycoon.Code
             Data = data;
             WorldPosition = worldPosition;
             Direction = direction;
-            ClaimSlots = new Guest[data.GetNumGuestSlots()];
+            ClaimSlots = new Agent[data.GetNumGuestSlots()];
             Held = false;
             HeldBy = null;
             Sprites = sprites;
@@ -203,11 +203,11 @@ namespace GymTycoon.Code
             return -1;
         }
 
-        public int TryOccupyClaimSlot(Guest guest)
+        public int TryOccupyClaimSlot(Agent agent)
         {
             if (Racked && Parent != null)
             {
-                return Parent.TryOccupyClaimSlot(guest);
+                return Parent.TryOccupyClaimSlot(agent);
             }
 
             int index = FindOpenClaimSlot();
@@ -216,20 +216,20 @@ namespace GymTycoon.Code
                 return index;
             }
 
-            ClaimSlots[index] = guest;
+            ClaimSlots[index] = agent;
             return index;
         }
 
-        public int GetOccupiedClaimSlot(Guest guest)
+        public int GetOccupiedClaimSlot(Agent agent)
         {
             if (Racked && Parent != null)
             {
-                return Parent.GetOccupiedClaimSlot(guest);
+                return Parent.GetOccupiedClaimSlot(agent);
             }
 
             for (int i = 0; i < ClaimSlots.Length; i++)
             {
-                if (ClaimSlots[i] == guest)
+                if (ClaimSlots[i] == agent)
                 {
                     return i;
                 }
@@ -258,11 +258,11 @@ namespace GymTycoon.Code
             return Data.GetStaffSlots(direction);
         }
 
-        public bool TryReleaseClaimSlot(Guest guest)
+        public bool TryReleaseClaimSlot(Agent agent)
         {
             for (int i = 0; i < ClaimSlots.Length; i++)
             {
-                if (ClaimSlots[i] == guest)
+                if (ClaimSlots[i] == agent)
                 {
                     ClaimSlots[i] = null;
                     return true;
@@ -296,8 +296,8 @@ namespace GymTycoon.Code
 
                 if (ClaimSlots[i] != null)
                 {
-                    // guest didn't leave?
-                    Debug.WriteLine("Warning: A guest did not remove their claim on equipment");
+                    // agent didn't leave?
+                    Debug.WriteLine("Warning: A agent did not remove their claim on equipment");
                 }
             }
         }

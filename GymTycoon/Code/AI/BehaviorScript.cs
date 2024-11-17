@@ -60,7 +60,7 @@ namespace GymTycoon.Code.AI
         /// <summary>
         /// This behavior is to be removed, clean up any state
         /// </summary>
-        public virtual void Complete(BehaviorInstance inst, Guest guest)
+        public virtual void Complete(BehaviorInstance inst, Agent agent)
         {
             //
         }
@@ -68,7 +68,7 @@ namespace GymTycoon.Code.AI
         /// <summary>
         /// Another behavior has become active, this behavior may be resumed
         /// </summary>
-        public virtual void Paused(BehaviorInstance inst, Guest guest)
+        public virtual void Paused(BehaviorInstance inst, Agent agent)
         {
             //
         }
@@ -77,26 +77,26 @@ namespace GymTycoon.Code.AI
         /// Another behavior has been completed and this behavior is starting
         /// </summary>
         /// <param name="inst"></param>
-        /// <param name="guest"></param>
-        public virtual void Resume(BehaviorInstance inst, Guest guest)
+        /// <param name="agent"></param>
+        public virtual void Resume(BehaviorInstance inst, Agent agent)
         {
 
         }
 
-        public virtual float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public virtual float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
             return 0;
         }
 
-        public virtual bool Tick(BehaviorInstance inst, Guest guest)
+        public virtual bool Tick(BehaviorInstance inst, Agent agent)
         {
             return false;
         }
 
-        public static bool CanBeClaimedBy(DynamicObjectInstance target, Guest guest)
+        public static bool CanBeClaimedBy(DynamicObjectInstance target, Agent agent)
         {
-            if (target.Held && !guest.IsHolding(target)) return false;
-            if (target.ClaimSlots[0] != null && target.ClaimSlots[0] != guest) return false;
+            if (target.Held && !agent.IsHolding(target)) return false;
+            if (target.ClaimSlots[0] != null && target.ClaimSlots[0] != agent) return false;
             return true;
         }
 
@@ -106,9 +106,9 @@ namespace GymTycoon.Code.AI
         //    return max - value;
         //}
 
-        public static float NeedUrgency(Guest guest, Tag type)
+        public static float NeedUrgency(Agent agent, Tag type)
         {
-            if (guest.Needs.TryGetValue(type, out int value))
+            if (agent.Needs.TryGetValue(type, out int value))
             {
                 return value;
             }
@@ -116,16 +116,16 @@ namespace GymTycoon.Code.AI
             return 0;
         }
 
-        public static float ExerciseNeedUrgency(Guest guest, Dictionary<Tag, int> properties)
+        public static float ExerciseNeedUrgency(Agent agent, Dictionary<Tag, int> properties)
         {
             float totalUrgency = 0;
             int totalCount = 0;
             foreach (var property in properties)
             {
-                if (guest.Needs.HasNeed(property.Key))
+                if (agent.Needs.HasNeed(property.Key))
                 {
                     totalCount++;
-                    totalUrgency += NeedUrgency(guest, property.Key) * property.Value; // guest need urgency * exercise effectiveness
+                    totalUrgency += NeedUrgency(agent, property.Key) * property.Value; // agent need urgency * exercise effectiveness
                 }
             }
 
@@ -145,9 +145,9 @@ namespace GymTycoon.Code.AI
             return 1f / (1f + distance);
         }
 
-        public static float DistancePenalty(Guest guest, int worldIndex)
+        public static float DistancePenalty(Agent agent, int worldIndex)
         {
-            return DistancePenalty(worldIndex, guest.WorldPosition);
+            return DistancePenalty(worldIndex, agent.WorldPosition);
         }
 
         public static float QueuePenalty(DynamicObjectInstance target)
@@ -161,7 +161,7 @@ namespace GymTycoon.Code.AI
             return 1f;
         }
 
-        public static bool FindClosestTileWithProperties(Point3 guestPos, TileProperties properties, out int worldIndex, int maxCheck = int.MaxValue)
+        public static bool FindClosestTileWithProperties(Point3 agentPos, TileProperties properties, out int worldIndex, int maxCheck = int.MaxValue)
         {
             List<int> destinations = GameInstance.Instance.World.FindTilesWithProperties(properties, maxCheck);
             if (destinations.Count == 0)
@@ -174,7 +174,7 @@ namespace GymTycoon.Code.AI
             int closestIndex = 0;
             for (int i = 0; i < destinations.Count; i++)
             {
-                float dist = Point3.Distance(guestPos, GameInstance.Instance.World.GetPosition(destinations[i]));
+                float dist = Point3.Distance(agentPos, GameInstance.Instance.World.GetPosition(destinations[i]));
                 if (dist < closest)
                 {
                     closest = dist;
@@ -196,18 +196,18 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[SymbolActiveAction] = null;
         }
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
             return 0f;
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
             Action activeAction = inst.Blackboard[SymbolActiveAction];
             if (activeAction == null)
             {
                 List<int> destinations = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Navigable);
-                if (!guest.HasCheckedIn)
+                if (!agent.HasCheckedIn)
                 {
                     destinations = destinations.Where(GameInstance.Instance.CanNavigatePreCheckInOnTile).ToList();
                 }
@@ -217,7 +217,7 @@ namespace GymTycoon.Code.AI
                 inst.Blackboard[SymbolActiveAction] = activeAction;
             }
 
-            EActionState state = activeAction.Tick(guest);
+            EActionState state = activeAction.Tick(agent);
             if (state != EActionState.WAITING)
             {
                 inst.Blackboard[SymbolActiveAction] = null;
@@ -225,12 +225,12 @@ namespace GymTycoon.Code.AI
             }
 
             // TODO: revisit resting
-            foreach (var kvp in guest.Needs.All())
+            foreach (var kvp in agent.Needs.All())
             {
                 if (kvp.Value < 0)
                 {
                     int setValue = MathHelper.Clamp(kvp.Value + 1, kvp.Value, 0);
-                    guest.Needs.SetValue(kvp.Key, setValue);
+                    agent.Needs.SetValue(kvp.Key, setValue);
                 }
             }
 
@@ -259,23 +259,23 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[SymbolState] = 0;
         }
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
-            if (guest.Happiness <= Guest.MinHappiness || guest.RemainingStayTime < 1)
+            if (agent.Happiness <= Agent.MinHappiness || agent.RemainingStayTime < 1)
             {
                 return float.MaxValue;
             }
 
 
-            return guest.AverageNeeds * -1f;
+            return agent.AverageNeeds * -1f;
             // return float.MinValue;
         }
 
 
-        private void UpdateDestination(BehaviorInstance inst, Guest guest)
+        private void UpdateDestination(BehaviorInstance inst, Agent agent)
         {
             inst.Blackboard[SymbolHasDestination] = false;
-            Point3 guestPos = GameInstance.Instance.World.GetPosition(guest.WorldPosition);
+            Point3 guestPos = GameInstance.Instance.World.GetPosition(agent.WorldPosition);
             int worldIndex;
             if (FindClosestTileWithProperties(guestPos, TileProperties.Spawn, out worldIndex))
             {
@@ -284,12 +284,12 @@ namespace GymTycoon.Code.AI
             }
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
             switch (inst.Blackboard[SymbolState])
             {
                 case StateCheckHeldObject:
-                    if (guest.HeldObjects.Count > 0)
+                    if (agent.HeldObjects.Count > 0)
                     {
                         inst.Blackboard[SymbolState] = StateFindHeldObjectDropPoint;
                     }
@@ -300,7 +300,7 @@ namespace GymTycoon.Code.AI
 
                     break;
                 case StateFindHeldObjectDropPoint:
-                    Point3 guestPos = GameInstance.Instance.World.GetPosition(guest.WorldPosition);
+                    Point3 guestPos = GameInstance.Instance.World.GetPosition(agent.WorldPosition);
                     int worldIndex;
                     if (FindClosestTileWithProperties(guestPos, TileProperties.Navigable, out worldIndex))
                     {
@@ -319,9 +319,9 @@ namespace GymTycoon.Code.AI
                         return false;
                     }
 
-                    if (moveAction.Tick(guest) == EActionState.SUCCESS)
+                    if (moveAction.Tick(agent) == EActionState.SUCCESS)
                     {
-                        inst.Blackboard[SymbolActiveAction] = new APutDown(guest, guest.HeldObjects[0], false);
+                        inst.Blackboard[SymbolActiveAction] = new APutDown(agent, agent.HeldObjects[0], false);
                         inst.Blackboard[SymbolState] = StateDropHeldObject;
                         return false;
                     }
@@ -335,7 +335,7 @@ namespace GymTycoon.Code.AI
                         break;
                     }
 
-                    if (dropAction.Tick(guest) == EActionState.SUCCESS)
+                    if (dropAction.Tick(agent) == EActionState.SUCCESS)
                     {
                         inst.Blackboard[SymbolState] = StateLeave;
                         return false;
@@ -350,7 +350,7 @@ namespace GymTycoon.Code.AI
                         TileType tile = GameInstance.Instance.World.GetTile(dest);
                         if (tile == null || !tile.HasProperty(TileProperties.Spawn))
                         {
-                            UpdateDestination(inst, guest);
+                            UpdateDestination(inst, agent);
                         }
 
                         Action activeAction = inst.Blackboard[SymbolActiveAction];
@@ -361,23 +361,23 @@ namespace GymTycoon.Code.AI
                             inst.Blackboard[SymbolActiveAction] = activeAction;
                         }
 
-                        activeAction.Tick(guest);
+                        activeAction.Tick(agent);
                         if (activeAction.IsComplete())
                         {
-                            if (guest.HeldObjects.Count > 0)
+                            if (agent.HeldObjects.Count > 0)
                             {
                                 // never leave with held objects
                                 inst.Blackboard[SymbolState] = StateCheckHeldObject;
                                 break;
                             }
 
-                            guest.PendingRemoval = true;
+                            agent.PendingRemoval = true;
                             return true;
                         }
                     }
                     else
                     {
-                        UpdateDestination(inst, guest);
+                        UpdateDestination(inst, agent);
                     }
                     break;
             }
@@ -402,39 +402,39 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[SymbolActiveAction] = null;
         }
 
-        public override void Complete(BehaviorInstance inst, Guest guest)
+        public override void Complete(BehaviorInstance inst, Agent agent)
         {
             if ((bool)inst.Blackboard[SymbolClaimed])
             {
-                inst.Target.TryReleaseClaimSlot(guest);
+                inst.Target.TryReleaseClaimSlot(agent);
             }
         }
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
-            if (!guest.HasCheckedIn)
+            if (!agent.HasCheckedIn)
             {
                 return float.MinValue;
             }
 
-            return ExerciseNeedUrgency(guest, behavior.Exercise.NeedModifiers)
-                * DistancePenalty(guest, target.WorldPosition)
+            return ExerciseNeedUrgency(agent, behavior.Exercise.NeedModifiers)
+                * DistancePenalty(agent, target.WorldPosition)
                 * QueuePenalty(target);
-            // * SkillModifier(guest, GuestSkillLevel.Beginner)
+            // * SkillModifier(agent, GuestSkillLevel.Beginner)
             // * FunModifier(ExerciseMat.ObjectType)
             // * QualityModifier(ExerciseMat.ObjectType);
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
             int step = inst.Blackboard[SymbolStep];
             switch (step)
             {
                 case 0:
-                    int slotIndex = inst.Target.TryOccupyClaimSlot(guest);
+                    int slotIndex = inst.Target.TryOccupyClaimSlot(agent);
                     if (slotIndex == -1)
                     {
-                        slotIndex = inst.Target.GetOccupiedClaimSlot(guest);
+                        slotIndex = inst.Target.GetOccupiedClaimSlot(agent);
                     }
 
                     if (slotIndex != -1)
@@ -458,7 +458,7 @@ namespace GymTycoon.Code.AI
                             if (inst.Target.Data.Holdable)
                             {
                                 inst.Blackboard[SymbolStep] = step + 1;
-                                action = new APickUp(guest, inst.Target);
+                                action = new APickUp(agent, inst.Target);
                                 inst.Blackboard[SymbolActiveAction] = action;
                                 break;
                             }
@@ -472,7 +472,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick move to target
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             // move failed
                             return true;
@@ -497,7 +497,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick pick up
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 3:
@@ -506,13 +506,13 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             inst.Blackboard[SymbolStep] = step + 1;
-                            action = new APutDown(guest, inst.Target);
+                            action = new APutDown(agent, inst.Target);
                             inst.Blackboard[SymbolActiveAction] = action;
                             break;
                         }
 
                         // tick move to new location
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             // on fail, retry!
                             List<int> destinations = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Navigable);
@@ -536,7 +536,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick put down
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 5:
@@ -550,7 +550,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick exercise
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
             }
@@ -576,19 +576,19 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[SymbolParentSlot] = -1;
         }
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
             if (target.Parent == null || target.Racked == true || target.HasAnyClaims())
             {
                 return float.MinValue;
             }
 
-            float pickUpDistancePenalty = DistancePenalty(guest, target.WorldPosition);
+            float pickUpDistancePenalty = DistancePenalty(agent, target.WorldPosition);
             float deliverDistancePenalty = DistancePenalty(target.WorldPosition, target.Parent.WorldPosition);
-            return pickUpDistancePenalty * deliverDistancePenalty; // TODO: Guest traits for cleanup behavior? re-use Dispose?
+            return pickUpDistancePenalty * deliverDistancePenalty; // TODO: Agent traits for cleanup behavior? re-use Dispose?
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
 
             int step = inst.Blackboard[SymbolStep];
@@ -597,10 +597,10 @@ namespace GymTycoon.Code.AI
                 case 0:
                     {
                         // claim item slot
-                        int slotIndex = inst.Target.TryOccupyClaimSlot(guest);
+                        int slotIndex = inst.Target.TryOccupyClaimSlot(agent);
                         if (slotIndex == -1)
                         {
-                            slotIndex = inst.Target.GetOccupiedClaimSlot(guest);
+                            slotIndex = inst.Target.GetOccupiedClaimSlot(agent);
                         }
 
                         if (slotIndex != -1)
@@ -624,13 +624,13 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             inst.Blackboard[SymbolStep] = step + 1;
-                            action = new APickUp(guest, inst.Target);
+                            action = new APickUp(agent, inst.Target);
                             inst.Blackboard[SymbolAction] = action;
                             break;
                         }
 
                         // tick move to target
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             // move failed
                             return true;
@@ -643,10 +643,10 @@ namespace GymTycoon.Code.AI
                         Action action = inst.Blackboard[SymbolAction];
                         if (action.IsComplete())
                         {
-                            int slotIndex = inst.Target.Parent.TryOccupyClaimSlot(guest);
+                            int slotIndex = inst.Target.Parent.TryOccupyClaimSlot(agent);
                             if (slotIndex == -1)
                             {
-                                slotIndex = inst.Target.Parent.GetOccupiedClaimSlot(guest);
+                                slotIndex = inst.Target.Parent.GetOccupiedClaimSlot(agent);
                             }
 
                             if (slotIndex != -1)
@@ -665,7 +665,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick pick up
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 3:
@@ -681,7 +681,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick move
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 4:
@@ -691,13 +691,13 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             inst.Blackboard[SymbolStep] = step + 1;
-                            action = new APutDown(guest, inst.Target, true);
+                            action = new APutDown(agent, inst.Target, true);
                             inst.Blackboard[SymbolAction] = action;
                             break;
                         }
 
                         // tick move to target
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             // TODO: Handle failed move (don't eat the gear!)
                             Reset(inst);
@@ -715,7 +715,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick put down
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
 
@@ -740,32 +740,32 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[TriesSymbol] = 0;
         }
 
-        public override void Complete(BehaviorInstance inst, Guest guest)
+        public override void Complete(BehaviorInstance inst, Agent agent)
         {
             dynamic claimed = false;
             if (inst.Blackboard.TryGetValue(ClaimedSymbol, out claimed))
             {
                 if ((bool)claimed)
                 {
-                    inst.Target.TryReleaseClaimSlot(guest);
+                    inst.Target.TryReleaseClaimSlot(agent);
                 }
             }
         }
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
             // TODO: Queue penalty, is staffed penalty
-            if (guest.HasCheckedIn)
+            if (agent.HasCheckedIn)
             {
                 return float.MinValue;
             }
 
-            return float.MaxValue * DistancePenalty(guest, target.WorldPosition) * QueuePenalty(target);
+            return float.MaxValue * DistancePenalty(agent, target.WorldPosition) * QueuePenalty(target);
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
-            if (guest.HasCheckedIn)
+            if (agent.HasCheckedIn)
             {
                 return true;
             }
@@ -782,10 +782,10 @@ namespace GymTycoon.Code.AI
             {
                 case 0:
                     {
-                        int slotIndex = inst.Target.TryOccupyClaimSlot(guest);
+                        int slotIndex = inst.Target.TryOccupyClaimSlot(agent);
                         if (slotIndex == -1)
                         {
-                            slotIndex = inst.Target.GetOccupiedClaimSlot(guest);
+                            slotIndex = inst.Target.GetOccupiedClaimSlot(agent);
                         }
 
                         if (slotIndex != -1)
@@ -808,7 +808,7 @@ namespace GymTycoon.Code.AI
 
                         // go for a walk and try again
                         inst.Blackboard[TriesSymbol] = inst.Blackboard[TriesSymbol] + 1;
-                        guest.AddBehavior(GameInstance.Instance.Instances.GetAdvertisedBehavior(new ScopedName("Behavior.Default.Wander")));
+                        agent.AddBehavior(GameInstance.Instance.Instances.GetAdvertisedBehavior(new ScopedName("Behavior.Default.Wander")));
                         return false;
                     }
                 case 1:
@@ -823,7 +823,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick move to kiosk
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             // TODO: Handle failed nav?
                             return true;
@@ -841,7 +841,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick use kiosk
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
             }
@@ -866,39 +866,39 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[SymbolActiveAction] = null;
         }
 
-        public override void Complete(BehaviorInstance inst, Guest guest)
+        public override void Complete(BehaviorInstance inst, Agent agent)
         {
             if ((bool)inst.Blackboard[SymbolClaimed])
             {
-                inst.Target.TryReleaseClaimSlot(guest);
+                inst.Target.TryReleaseClaimSlot(agent);
             }
         }
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
-            if (!guest.HasCheckedIn)
+            if (!agent.HasCheckedIn)
             {
                 return float.MinValue;
             }
 
-            return ExerciseNeedUrgency(guest, behavior.Exercise.NeedModifiers)
-                * DistancePenalty(guest, target.WorldPosition)
+            return ExerciseNeedUrgency(agent, behavior.Exercise.NeedModifiers)
+                * DistancePenalty(agent, target.WorldPosition)
                 * QueuePenalty(target);
-            // * SkillModifier(guest, GuestSkillLevel.Beginner)
+            // * SkillModifier(agent, GuestSkillLevel.Beginner)
             // * FunModifier(ExerciseMat.ObjectType)
             // * QualityModifier(ExerciseMat.ObjectType);
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
             int step = inst.Blackboard[SymbolStep];
             switch (step)
             {
                 case 0:
-                    int slotIndex = inst.Target.TryOccupyClaimSlot(guest);
+                    int slotIndex = inst.Target.TryOccupyClaimSlot(agent);
                     if (slotIndex == -1)
                     {
-                        slotIndex = inst.Target.GetOccupiedClaimSlot(guest);
+                        slotIndex = inst.Target.GetOccupiedClaimSlot(agent);
                     }
 
                     if (slotIndex != -1)
@@ -922,7 +922,7 @@ namespace GymTycoon.Code.AI
                             if (inst.Target.Data.Holdable)
                             {
                                 inst.Blackboard[SymbolStep] = step + 1;
-                                action = new APickUp(guest, inst.Target);
+                                action = new APickUp(agent, inst.Target);
                                 inst.Blackboard[SymbolActiveAction] = action;
                                 break;
                             }
@@ -936,7 +936,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick move to target
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             // move failed
                             return true;
@@ -958,7 +958,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick pick up
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 3:
@@ -967,13 +967,13 @@ namespace GymTycoon.Code.AI
                         if (action.IsComplete())
                         {
                             inst.Blackboard[SymbolStep] = step + 1;
-                            action = new APutDown(guest, inst.Target);
+                            action = new APutDown(agent, inst.Target);
                             inst.Blackboard[SymbolActiveAction] = action;
                             break;
                         }
 
                         // tick move to new location
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 4:
@@ -988,7 +988,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick put down
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
                 case 5:
@@ -1002,7 +1002,7 @@ namespace GymTycoon.Code.AI
                         }
 
                         // tick exercise
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
             }
@@ -1021,19 +1021,19 @@ namespace GymTycoon.Code.AI
         private const int StepMoveTo = 1;
         private const int StepUse = 2;
 
-        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Guest guest)
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
         {
-            if (!guest.HasCheckedIn)
+            if (!agent.HasCheckedIn)
             {
                 return float.MinValue;
             }
 
-            if (guest.Needs["Toilet"] < 50)
+            if (agent.Needs["Toilet"] < 50)
             {
                 return float.MinValue;
             }
 
-            return NeedUrgency(guest, "Toilet") * QueuePenalty(target) * DistancePenalty(guest, target.WorldPosition);
+            return NeedUrgency(agent, "Toilet") * QueuePenalty(target) * DistancePenalty(agent, target.WorldPosition);
         }
 
         public override void Reset(BehaviorInstance inst)
@@ -1043,9 +1043,9 @@ namespace GymTycoon.Code.AI
             inst.Blackboard[SymbolClaimed] = false;
         }
 
-        public override bool Tick(BehaviorInstance inst, Guest guest)
+        public override bool Tick(BehaviorInstance inst, Agent agent)
         {
-            if (!guest.HasCheckedIn)
+            if (!agent.HasCheckedIn)
             {
                 return true;
             }
@@ -1055,10 +1055,10 @@ namespace GymTycoon.Code.AI
             {
                 case StepClaim:
                     {
-                        int slotIndex = inst.Target.TryOccupyClaimSlot(guest);
+                        int slotIndex = inst.Target.TryOccupyClaimSlot(agent);
                         if (slotIndex == -1)
                         {
-                            slotIndex = inst.Target.GetOccupiedClaimSlot(guest);
+                            slotIndex = inst.Target.GetOccupiedClaimSlot(agent);
                         }
 
                         if (slotIndex != -1)
@@ -1085,7 +1085,7 @@ namespace GymTycoon.Code.AI
                             break;
                         }
 
-                        if (action.Tick(guest) == EActionState.FAILED)
+                        if (action.Tick(agent) == EActionState.FAILED)
                         {
                             return true;
                         }
@@ -1097,12 +1097,12 @@ namespace GymTycoon.Code.AI
                         Action action = inst.Blackboard[SymbolAction];
                         if (action.IsComplete())
                         {
-                            inst.Target.TryReleaseClaimSlot(guest);
+                            inst.Target.TryReleaseClaimSlot(agent);
                             inst.Blackboard[SymbolAction] = null;
                             return true;
                         }
 
-                        action.Tick(guest);
+                        action.Tick(agent);
                         break;
                     }
             }

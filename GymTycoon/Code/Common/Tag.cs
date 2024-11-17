@@ -9,6 +9,7 @@ namespace GymTycoon.Code.Common
     public class Tag
     {
         private static Dictionary<int, string> _tags = [];
+        public static Tag EMPTY = new Tag("");
 
         public static IEnumerable<string> All()
         {

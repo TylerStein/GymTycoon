@@ -10,9 +10,9 @@ namespace GymTycoon.Code.AI
         public readonly BehaviorScript Script;
 
         public DynamicObjectInstance Target;
-        public Guest Owner;
+        public Agent Owner;
 
-        public BehaviorInstance(Behavior data, BehaviorScript script, DynamicObjectInstance target, Guest owner)
+        public BehaviorInstance(Behavior data, BehaviorScript script, DynamicObjectInstance target, Agent owner)
         {
             Data = data;
             Script = script;
@@ -21,7 +21,7 @@ namespace GymTycoon.Code.AI
             Blackboard = [];
         }
 
-        public BehaviorInstance(AdvertisedBehavior ad, Guest owner) : this(ad.Behavior, ad.Script, ad.Target, owner) { }
+        public BehaviorInstance(AdvertisedBehavior ad, Agent owner) : this(ad.Behavior, ad.Script, ad.Target, owner) { }
 
         public void SetOwner(DynamicObjectInstance owner)
         {
@@ -82,9 +82,9 @@ namespace GymTycoon.Code.AI
             Script = script;    
         }
 
-        public float GetUtility(Guest guest)
+        public float GetUtility(Agent agent)
         {
-            return Script.GetUtility(Target, Behavior, guest);
+            return Script.GetUtility(Target, Behavior, agent);
         }
 
         public override string ToString()
