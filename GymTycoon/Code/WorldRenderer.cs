@@ -73,6 +73,7 @@ namespace GymTycoon.Code
 
         // DEBUG INFO
         private Point3 _worldCursor = Point3.Zero;
+        private int _worldCursorIndex = 0;
         private float _cursorDepth = 0f;
 
         private int _drawTileCount = 0;
@@ -440,6 +441,7 @@ namespace GymTycoon.Code
 
             _worldCursor = (Point3)ScreenToWorld(game.Input.MousePosition);
             _worldCursor.Z = _viewLayer;
+            _worldCursorIndex = GameInstance.Instance.World.GetIndex(_worldCursor);
             int cursorDepth = GetDepth(_worldCursor, worldSize.X, worldSize.Y);
             _cursorDepth = (float)cursorDepth / (float)(maxDepth - minDepth);
 
@@ -571,9 +573,20 @@ namespace GymTycoon.Code
             ImGui.Text($"CAMERA ({_camera.X}, {_camera.Y})");
             ImGui.Text($"TILES ({_drawTileCount})");
             ImGui.Text($"BURSTS ({_drawBurstCount})");
-            ImGui.Text($"CURSOR ({_worldCursor.X}, {_worldCursor.Y}, {_worldCursor.Z})");
+            ImGui.Text($"CURSOR P ({_worldCursor.X}, {_worldCursor.Y}, {_worldCursor.Z})");
+            ImGui.Text($"CURSOR I ({_worldCursorIndex})");
+
+            if (ImGui.CollapsingHeader("Tile Properties"))
+            {
+                TileType tile = GameInstance.Instance.World.GetTile(_worldCursorIndex);
+                if (tile.HasProperty(TileProperties.Spawn)) ImGui.Text("Spawn");
+                if (tile.HasProperty(TileProperties.Transparency)) ImGui.Text("Transparency");
+                if (tile.HasProperty(TileProperties.Visible)) ImGui.Text("Visible");
+                if (tile.HasProperty(TileProperties.Navigable)) ImGui.Text("Navigable");
+            }
+
             ImGui.Text($"DEPTH ({_cursorDepth})");
-            ImGui.Text($"BEAUTY ({GameInstance.Instance.World.GetBeautyAt(GameInstance.Instance.World.GetIndex(_worldCursor))})");
+            ImGui.Text($"BEAUTY ({GameInstance.Instance.World.GetBeautyAt(_worldCursorIndex)}");
             ImGui.Separator();
             if (ImGui.Button("Reset Camera"))
             {

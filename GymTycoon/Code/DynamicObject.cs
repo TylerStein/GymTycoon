@@ -8,6 +8,125 @@ using System.Diagnostics;
 
 namespace GymTycoon.Code
 {
+    public class ClaimSlots
+    {
+        public Agent[] Slots;
+
+        public ClaimSlots(int count)
+        {
+            Slots = new Agent[count];
+        }
+
+        public Agent this[int index]
+        {
+            get
+            {
+                return Slots[index];
+            }
+            private set
+            {
+                Slots[index] = value;
+            }
+        }
+
+        public bool HasAnyClaims()
+        {
+            for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public int FindOpenClaimSlot()
+        {
+            for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] == null)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        public int TryOccupyClaimSlot(Agent agent)
+        {
+            int index = FindOpenClaimSlot();
+            if (index == -1)
+            {
+                return index;
+            }
+
+            Slots[index] = agent;
+            return index;
+        }
+
+        public int GetOccupiedClaimSlot(Agent agent)
+        {
+            for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] == agent)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+        public bool TryReleaseClaimSlot(Agent agent)
+        {
+            for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] == agent)
+                {
+                    Slots[i] = null;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void ClearClaims()
+        {
+            for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] == null)
+                {
+                    continue;
+                }
+
+                Slots[i].TerminateBehavior();
+
+                if (Slots[i] != null)
+                {
+                    // agent didn't leave?
+                    Debug.WriteLine("Warning: A agent did not remove their claim on dynamic object");
+                }
+            }
+        }
+
+        public int CountOccupiedSlots()
+        {
+            int count = 0;
+            for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] != null)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+
 
     public class DynamicObjectInstance
     {
@@ -43,12 +162,14 @@ namespace GymTycoon.Code
 
         public int Condition;
         public int WorldPosition;
-        public Agent[] ClaimSlots;
         public string ActiveSpriteAlias;
         public Direction Direction;
         public int PurchaseValue = 0;
         public int[] RemainingQuantities;
         public bool Navigable;
+
+        public ClaimSlots GuestClaimSlots;
+        public ClaimSlots StaffClaimSlots;
 
         public bool Held;
         public Agent HeldBy;
@@ -71,7 +192,8 @@ namespace GymTycoon.Code
             Data = data;
             WorldPosition = worldPosition;
             Direction = direction;
-            ClaimSlots = new Agent[data.GetNumGuestSlots()];
+            GuestClaimSlots = new ClaimSlots(data.GetNumGuestSlots());
+            StaffClaimSlots = new ClaimSlots(data.GetNumStaffSlots());
             Held = false;
             HeldBy = null;
             Sprites = sprites;
@@ -171,73 +293,6 @@ namespace GymTycoon.Code
                 && (Data.Behaviors.Length > 0 || Data.DispensedObjects.Length > 0);
         }
 
-        public bool HasAnyClaims()
-        {
-            for (int i = 0; i < ClaimSlots.Length; i++)
-            {
-                if (ClaimSlots[i] != null)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public int FindOpenClaimSlot()
-        {
-            // TODO: Optimize by setting flag when adding/removing guests?
-            if (Racked && Parent != null)
-            {
-                return Parent.FindOpenClaimSlot();
-            }
-
-            for (int i = 0; i < ClaimSlots.Length; i++)
-            {
-                if (ClaimSlots[i] == null)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public int TryOccupyClaimSlot(Agent agent)
-        {
-            if (Racked && Parent != null)
-            {
-                return Parent.TryOccupyClaimSlot(agent);
-            }
-
-            int index = FindOpenClaimSlot();
-            if (index == -1)
-            {
-                return index;
-            }
-
-            ClaimSlots[index] = agent;
-            return index;
-        }
-
-        public int GetOccupiedClaimSlot(Agent agent)
-        {
-            if (Racked && Parent != null)
-            {
-                return Parent.GetOccupiedClaimSlot(agent);
-            }
-
-            for (int i = 0; i < ClaimSlots.Length; i++)
-            {
-                if (ClaimSlots[i] == agent)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
         public Point[] GetGuestSlots(Direction direction)
         {
             if (Racked && Parent != null)
@@ -258,20 +313,6 @@ namespace GymTycoon.Code
             return Data.GetStaffSlots(direction);
         }
 
-        public bool TryReleaseClaimSlot(Agent agent)
-        {
-            for (int i = 0; i < ClaimSlots.Length; i++)
-            {
-                if (ClaimSlots[i] == agent)
-                {
-                    ClaimSlots[i] = null;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public void AddBurst(EBurstType burstType, float life = 2.5f)
         {
             Point3 worldPos = GameInstance.Instance.World.GetPosition(WorldPosition);
@@ -283,28 +324,107 @@ namespace GymTycoon.Code
             return (int)MathF.Ceiling(PurchaseValue * 0.5f); // TODO: smart refund values
         }
 
-        public void ClearClaims()
+        public int FindOpenGuestClaimSlot()
         {
-            for (int i = 0; i < ClaimSlots.Length; i++)
+            // TODO: Optimize by setting flag when adding/removing guests?
+            if (Racked && Parent != null)
             {
-                if (ClaimSlots[i] == null)
-                {
-                    continue;
-                }
-
-                ClaimSlots[i].RemoveActiveBehavior();
-
-                if (ClaimSlots[i] != null)
-                {
-                    // agent didn't leave?
-                    Debug.WriteLine("Warning: A agent did not remove their claim on equipment");
-                }
+                return Parent.FindOpenGuestClaimSlot();
             }
+
+            return GuestClaimSlots.FindOpenClaimSlot();
+        }
+
+        public int TryOccupyGuestClaimSlot(Agent agent)
+        {
+            if (Racked && Parent != null)
+            {
+                return Parent.TryOccupyGuestClaimSlot(agent);
+            }
+
+            return GuestClaimSlots.TryOccupyClaimSlot(agent);
+        }
+
+        public int GetOccupiedClaimSlot(Agent agent)
+        {
+            if (Racked && Parent != null)
+            {
+                return Parent.GetOccupiedClaimSlot(agent);
+            }
+
+            return GuestClaimSlots.GetOccupiedClaimSlot(agent);
+        }
+
+        public bool TryReleaseGuestClaimSlot(Agent agent)
+        {
+            return GuestClaimSlots.TryReleaseClaimSlot(agent);
+        }
+
+        public bool HasAnyGuestClaims()
+        {
+            return GuestClaimSlots.HasAnyClaims();
+        }
+
+        public int FindOpenStaffClaimSlot()
+        {
+            // TODO: Optimize by setting flag when adding/removing guests?
+            if (Racked && Parent != null)
+            {
+                return Parent.FindOpenStaffClaimSlot();
+            }
+
+            return StaffClaimSlots.FindOpenClaimSlot();
+        }
+
+        public int TryOccupyStaffClaimSlot(Agent agent)
+        {
+            if (Racked && Parent != null)
+            {
+                return Parent.TryOccupyStaffClaimSlot(agent);
+            }
+
+            return StaffClaimSlots.TryOccupyClaimSlot(agent);
+        }
+
+        public int GetOccupiedStaffClaimSlot(Agent agent)
+        {
+            if (Racked && Parent != null)
+            {
+                return Parent.GetOccupiedStaffClaimSlot(agent);
+            }
+
+            return StaffClaimSlots.GetOccupiedClaimSlot(agent);
+        }
+
+        public bool TryReleaseStaffClaimSlot(Agent agent)
+        {
+            return StaffClaimSlots.TryReleaseClaimSlot(agent);
+        }
+
+        public bool HasAnyStaffClaims()
+        {
+            return StaffClaimSlots.HasAnyClaims();
+        }
+
+        public int CountOccupiedStaffSlots()
+        {
+            if (Racked && Parent != null)
+            {
+                return Parent.CountOccupiedStaffSlots();
+            }
+
+            return StaffClaimSlots.CountOccupiedSlots();
+        }
+
+        public void ClearAllClaims()
+        {
+            GuestClaimSlots.ClearClaims();
+            StaffClaimSlots.ClearClaims();
         }
         
         public void Rotate()
         {
-            ClearClaims();
+            ClearAllClaims();
             Direction++;
             if ((int)Direction > 3)
             {

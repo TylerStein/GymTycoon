@@ -301,8 +301,6 @@ namespace GymTycoon.Code.Cursors
                     ImGui.Text($"Name: {guest}");
                     ImGui.Text($"Position: {guest.WorldPosition}");
                 }
-
-                ImGui.Separator();
             }
         }
 

@@ -95,7 +95,7 @@ namespace GymTycoon.Code.AI
             {
                 Target.Racked = false;
                 Target.Parent.UpdateRemainingQuantity(Target, -1);
-                Target.Parent.TryReleaseClaimSlot(agent);
+                Target.Parent.TryReleaseGuestClaimSlot(agent);
             }
             else
             {
@@ -136,7 +136,7 @@ namespace GymTycoon.Code.AI
                     Target.WorldPosition = Target.Parent.WorldPosition;
                     Target.Racked = true;
                     Target.Parent.UpdateRemainingQuantity(Target, 1);
-                    Target.Parent.TryReleaseClaimSlot(agent);
+                    Target.Parent.TryReleaseGuestClaimSlot(agent);
                 }
                 else
                 {
@@ -146,7 +146,7 @@ namespace GymTycoon.Code.AI
                 }
 
                 Target.Held = false;
-                Target.TryReleaseClaimSlot(agent);
+                Target.TryReleaseGuestClaimSlot(agent);
                 _isComplete = true;
                 return EActionState.SUCCESS;
             }
@@ -260,6 +260,39 @@ namespace GymTycoon.Code.AI
             {
                 agent.Needs["Toilet"] = 0;
                 _isComplete = true;
+                return EActionState.SUCCESS;
+            }
+
+            return EActionState.WAITING;
+        }
+    }
+
+    public class ASaffStation : Action
+    {
+        int countdown = 10;
+        public DynamicObjectInstance Target = null;
+
+        public ASaffStation(DynamicObjectInstance target)
+        {
+            _isValid = true;
+            _isComplete = false;
+            Target = target;
+        }
+
+        public override EActionState Tick(Agent agent)
+        {
+            // TODO: How to set an object as being staffed so guests can interact?
+
+            _isValid = (agent is Staff);
+            if (!_isValid)
+            {
+                return EActionState.FAILED;
+            }
+
+            agent.AnimateIdle();
+            countdown--;
+            if (countdown <= 0)
+            {
                 return EActionState.SUCCESS;
             }
 

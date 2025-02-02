@@ -156,7 +156,7 @@ namespace GymTycoon.Code
             dynamicObjects.Clear();
             foreach (var obj in _dynamicObjects.Values)
             {
-                if (obj.Data.Category == category && !obj.Held && obj.FindOpenClaimSlot() != -1)
+                if (obj.Data.Category == category && !obj.Held && obj.FindOpenGuestClaimSlot() != -1)
                 {
                     dynamicObjects.Add(obj);
                 }
@@ -304,7 +304,7 @@ namespace GymTycoon.Code
 
             foreach (var child in obj.Children)
             {
-                child.ClearClaims();
+                child.ClearAllClaims();
 
                 if (child.Held)
                 {
@@ -326,7 +326,7 @@ namespace GymTycoon.Code
                 }
             }
 
-            obj.ClearClaims();
+            obj.ClearAllClaims();
             RemoveDynamicObjectLocation(obj.WorldPosition, obj.Id);
 
             GameInstance.Instance.Economy.Transaction(obj.GetRefundValue(), TransactionType.Refund);

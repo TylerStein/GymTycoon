@@ -55,7 +55,7 @@ namespace GymTycoon.Code.Common
             int z = (int)MathF.Floor((float)index / (float)area);
             int indexInLayer = index % area;
             int x = indexInLayer % width;
-            int y = (int)MathF.Floor((float)indexInLayer / (float)height);
+            int y = (int)MathF.Floor((float)indexInLayer / (float)width); // /height?
             return new Point3(x, y, z);
         }
 
@@ -83,6 +83,5 @@ namespace GymTycoon.Code.Common
         {
             return x + y * width;
         }
-
     }
 }

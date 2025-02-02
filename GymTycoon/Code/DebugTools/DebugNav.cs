@@ -16,7 +16,7 @@ namespace GymTycoon.Code.DebugTools
         {
             if (DebugNavEnabled)
             {
-                if (GameInstance.Instance.Input.MouseIsOnScreen && GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputSelect).ConsumePressed())
+                if (GameInstance.Instance.Input.MouseIsOnScreen && GameInstance.Instance.Input.GetBinaryAction(GameInstance.SymbolInputSelect).Released)
                 {
                     int position = GameInstance.Instance.World.GetIndex(GameInstance.Instance.WorldRenderer.GetWorldCursor());
                     TileType tile = GameInstance.Instance.World.GetTile(position);
@@ -49,7 +49,6 @@ namespace GymTycoon.Code.DebugTools
                             DebugNavEnd = null;
                             DebugNavPath.Clear();
                         }
-
                     }
 
                     return;

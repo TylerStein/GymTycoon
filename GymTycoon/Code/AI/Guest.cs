@@ -218,21 +218,29 @@ namespace GymTycoon.Code.AI
             ImGui.Text($"Happiness = {Happiness}");
             ImGui.Text($"LifetimeHappiness = {OffscreenAgent.LifetimeHappiness}");
             ImGui.Checkbox("FollowCam", ref FollowCam);
-            foreach (var behavior in _activeBehaviors ) { 
-                ImGui.Text($"Behavior = {behavior.Script.GetType()}");
-                if (behavior.Target != null)
-                {
-                    ImGui.Text($"Context = {behavior.Target.GetType()}");
-                }
+            if (_activeBehavior != null) {
+                ImGui.Text($"Behavior = {_activeBehavior.Script.GetType()}");
+            }
 
-                if (ImGui.CollapsingHeader("Blackboard"))
+            if (ImGui.CollapsingHeader("Blackboard"))
+            {
+                if (_activeBehavior != null)
                 {
-                    foreach (var item in behavior.Blackboard)
+                    foreach (var item in _activeBehavior.Owner.Blackboard.GetDictValues())
                     {
                         ImGui.Text($"{item.Key} = {item.Value}");
                     }
                 }
             }
+
+            if (ImGui.CollapsingHeader("BehaviorTree"))
+            {
+                if (_activeBehavior != null)
+                {
+                    _activeBehavior.BehaviorTree.DrawImGui();
+                }
+            }
+
             if (ImGui.CollapsingHeader("Needs"))
             {
                 foreach (var kvp in Needs.All())

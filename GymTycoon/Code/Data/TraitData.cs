@@ -55,7 +55,7 @@ namespace GymTycoon.Code.Data
         {
             { "UpperLower", new List<Tag>[] { ExercisePropertyGroups.UpperBody, ExercisePropertyGroups.LowerBody } },
             { "PushPullLower", new List<Tag>[] { ExercisePropertyGroups.Push, ExercisePropertyGroups.Pull, ExercisePropertyGroups.LowerBody } },
-            { "FulLBody", new List<Tag>[] { ExercisePropertyGroups.Strength } },
+            { "FullBody", new List<Tag>[] { ExercisePropertyGroups.Strength } },
             { "Cardio", new List<Tag>[] { ExercisePropertyGroups.Cardio } },
             { "Yoga", new List<Tag>[] { ExercisePropertyGroups.Yoga } },
         };

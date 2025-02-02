@@ -1,13 +1,13 @@
 ﻿using GymTycoon.Code.Data;
-using System.Collections.Generic;
+using GymTycoon.Code.AI.BehaviorTree;
 
 namespace GymTycoon.Code.AI
 {
     public class BehaviorInstance
     {
         public readonly Behavior Data;
-        public readonly Dictionary<string, dynamic> Blackboard;
         public readonly BehaviorScript Script;
+        public readonly BehaviorTree.BehaviorTree BehaviorTree;
 
         public DynamicObjectInstance Target;
         public Agent Owner;
@@ -18,7 +18,16 @@ namespace GymTycoon.Code.AI
             Script = script;
             Owner = owner;
             Target = target;
-            Blackboard = [];
+
+            BehaviorTreeBuilder builder = BehaviorTreeFactory.Create(data.Script);
+            if (builder != null)
+            {
+                owner.Blackboard.Clear();
+                owner.Blackboard.SetValue(BTBehavior.DefaultTargetKey, Target);
+                BehaviorContext context = new BehaviorContext(data, owner, owner.Blackboard);
+                BehaviorTree = builder.Build(context);
+            }
+
         }
 
         public BehaviorInstance(AdvertisedBehavior ad, Agent owner) : this(ad.Behavior, ad.Script, ad.Target, owner) { }
@@ -28,37 +37,29 @@ namespace GymTycoon.Code.AI
             Target = owner;
         }
 
-        public void Reset()
+        public void Terminate()
         {
-            Script.Reset(this);
-        }
-
-        public void Release()
-        {
-            Script.Complete(this, Owner);
-            Blackboard.Clear();
-        }
-
-        public void Pause()
-        {
-            Script.Paused(this, Owner);
-        }
-
-        public void Resume()
-        {
-            Script.Resume(this, Owner);
+            BehaviorTree.Terminate();
         }
 
         public bool Tick()
         {
-            return Script.Tick(this, Owner);
+            BTState state = BehaviorTree.Tick();
+            switch (state)
+            {
+                case BTState.SUCCESS:
+                case BTState.FAILURE:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public T TryGetBlackboardValue<T>(string key, T defaultValue)
         {
-            if (Blackboard.ContainsKey(key))
+            if (Owner.Blackboard.TryGetValue(key, out T value))
             {
-                return Blackboard[key];
+                return value;
             }
 
             return defaultValue;

@@ -192,6 +192,11 @@ namespace GymTycoon.Code.Data
             return _guestSlots[0].Length;
         }
 
+        public int GetNumStaffSlots()
+        {
+            return _staffSlots[0].Length;
+        }
+
         public override string ToString()
         {
             return GetFullName();

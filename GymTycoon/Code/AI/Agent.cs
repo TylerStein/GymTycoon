@@ -16,6 +16,12 @@ namespace GymTycoon.Code.AI
         public int LifetimeVisits = 0;
     }
 
+    // TODO: Offscreen can probably be "Guest" specific
+    public class NullOffscreenAgent : OffscreenAgent
+    {
+
+    }
+
     public class AgentBTUtility
     {
         public bool HasActiveNeed => ActiveNeed != Tag.EMPTY;
@@ -38,10 +44,14 @@ namespace GymTycoon.Code.AI
 
     public abstract class Agent
     {
+        public static int NextId = 0;
+        public int Id;
+
         public const float MinHappiness = -1000f;
         public const float MaxHappiness = 1000f;
 
         public Needs Needs;
+        public Blackboard Blackboard;
 
         public int WorldPosition;
         public bool PendingRemoval;
@@ -52,7 +62,7 @@ namespace GymTycoon.Code.AI
         public int AnimFrame = 0;
         public float AverageNeeds = 0;
         public List<DynamicObjectInstance> HeldObjects = [];
-        public Stack<BehaviorInstance> _activeBehaviors = [];
+        public BehaviorInstance _activeBehavior = null;
 
         public Vector3 TileOffset = Vector3.Zero;
         public Vector3 Destination = Vector3.Zero;
@@ -73,19 +83,26 @@ namespace GymTycoon.Code.AI
 
         public OffscreenAgent OffscreenAgent;
 
-        public BTNode BehaviorTreeRootNode = new BTSuccessNode();
-        public AgentBTUtility BTUtility = new AgentBTUtility();
+        //public BTNode BehaviorTreeRootNode = new BTSuccessNode();
+        //public AgentBTUtility BTUtility = new AgentBTUtility();
 
         public Agent(int worldIndex, SpriteInstance sprite)
         {
             WorldPosition = worldIndex;
             Sprite = sprite;
             Needs = new Needs([]);
+            Blackboard = new Blackboard();
+            Id = NextId++;
         }
 
         public abstract void DrawImGui();
         public abstract void AddExperience(Tag key, int increment);
         public abstract int GetExperience(Tag key);
+
+        public override string ToString()
+        {
+            return Id.ToString();
+        }
 
         public virtual void Update(float deltaTime)
         {
@@ -154,36 +171,19 @@ namespace GymTycoon.Code.AI
             TickBehavior();
         }
 
-        public virtual void AddBehavior(AdvertisedBehavior advertisedBehavior)
+        public virtual void SetBehavior(AdvertisedBehavior advertisedBehavior)
         {
-            AddBehavior(new BehaviorInstance(advertisedBehavior, this));
-        }
-
-        public virtual void AddBehavior(BehaviorInstance behavior)
-        {
-            if (_activeBehaviors.Count > 0)
+            if (_activeBehavior != null)
             {
-                _activeBehaviors.Peek().Pause();
+                throw new Exception("Cannot set behavior while one is active");
             }
 
-            _activeBehaviors.Push(behavior);
-            behavior.Reset();
-        }
-
-        public virtual void RemoveActiveBehavior()
-        {
-            if (_activeBehaviors.Count == 0)
+            if (PendingRemoval)
             {
                 return;
             }
 
-            BehaviorInstance inst = _activeBehaviors.Pop();
-            inst.Release();
-
-            if (_activeBehaviors.Count > 0)
-            {
-                _activeBehaviors.Peek().Resume();
-            }
+            _activeBehavior = new BehaviorInstance(advertisedBehavior, this);
         }
 
         public virtual void TickNeeds()
@@ -216,17 +216,25 @@ namespace GymTycoon.Code.AI
 
         public virtual void TickBehavior()
         {
-            if (_activeBehaviors.Count == 0)
+            if (_activeBehavior == null)
             {
                 FindBehavior();
                 return;
             }
 
-            // true return means script is complete
-            if (_activeBehaviors.Peek().Tick())
+            bool result = _activeBehavior.Tick();
+            if (result)
             {
-                RemoveActiveBehavior();
-                return;
+                _activeBehavior = null;
+            }
+        }
+
+        public virtual void TerminateBehavior()
+        {
+            if (_activeBehavior != null)
+            {
+                _activeBehavior.Terminate();
+                _activeBehavior = null;
             }
         }
 
@@ -250,7 +258,7 @@ namespace GymTycoon.Code.AI
                 return;
             }
 
-            AddBehavior(bestBehavior);
+            SetBehavior(bestBehavior);
         }
 
         public virtual void SetPosition(Vector3 position)
