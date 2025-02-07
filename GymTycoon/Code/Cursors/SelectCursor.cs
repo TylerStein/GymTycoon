@@ -119,6 +119,14 @@ namespace GymTycoon.Code.Cursors
                 GameInstance.Instance.World.DeleteDynamicObject(_selectedHitbox.dynamicObjectInstance);
                 GameInstance.Instance.UpdateZoneForObjectType(category);
             }
+
+            _currentSelection = -1;
+            _selectedHitbox = null;
+        }
+
+        public void Clear()
+        {
+            _selectedHitbox = null;
         }
 
         public void SetSelection(DynamicObjectInstance obj)
