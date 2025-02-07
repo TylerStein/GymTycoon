@@ -21,6 +21,8 @@ namespace GymTycoon.Code
         // 0.0031 to 0.004 DYNAMIC OBJECT FOREGROUND
         // 0.0041 +        RESERVED
 
+        public const int SpriteSize = 32;
+
         private const float _depthMinTile                       = 0.0000f;
         private const float _depthMaxTile                       = 0.0010f;
         private const float _depthMinDynamicObjectBackground    = 0.0011f;
@@ -49,8 +51,8 @@ namespace GymTycoon.Code
 
         private Point _viewportSize = new(1, 1);
 
-        private int _drawTileSize = 32; // aka zoom
-        private Point _worldTileSize = new(32, 16);
+        private int _drawTileSize = SpriteSize; // aka zoom
+        private Point _worldTileSize = new(SpriteSize, SpriteSize / 2);
 
         private Point _camera = new(0, 0);
         private int _viewLayer = 1;
@@ -266,7 +268,7 @@ namespace GymTycoon.Code
         private void DrawScreen(Point screen, Texture2D texture, float depth, int sheetOffsetX, int sheetOffsetY, Color color, SpriteEffects spriteEffects = SpriteEffects.None)
         {
             Rectangle destinationRectangle = new(screen.X - _drawTileSize / 2, screen.Y - _drawTileSize / 2, _drawTileSize, _drawTileSize);
-            Rectangle sourceRectangle = new Rectangle(sheetOffsetX * 32, sheetOffsetY * 32, 32, 32);
+            Rectangle sourceRectangle = new Rectangle(sheetOffsetX * SpriteSize, sheetOffsetY * SpriteSize, SpriteSize, SpriteSize);
             _spriteBatch.Draw(texture, destinationRectangle, sourceRectangle, color, 0f, Vector2.Zero, spriteEffects, depth);
         }
 
