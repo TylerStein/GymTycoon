@@ -167,6 +167,7 @@ namespace GymTycoon.Code
             Cursor.Update();
             Stats.Update();
             Scenario.Update();
+            World.Update(DeltaTime);
 
             Point3 worldSize = World.GetSize();
             int depthChange = Input.GetLinearAction(SymbolInputDepth).Delta;

@@ -108,6 +108,17 @@ namespace GymTycoon.Code
             return IsoGrid.Point3ToIndex(position, _width, _height);
         }
 
+        public void Update(float deltaTime)
+        {
+            foreach (var obj in _dynamicObjects)
+            {
+                foreach (var spr in obj.Value.Sprites)
+                {
+                    spr.Value.Update(deltaTime);
+                }
+            }
+        }
+
         public void DrawImGui()
         {
             ImGui.Begin("[DEBUG] World");
