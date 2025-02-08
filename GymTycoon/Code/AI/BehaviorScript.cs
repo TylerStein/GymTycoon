@@ -243,4 +243,22 @@ namespace GymTycoon.Code.AI
             return NeedUrgency(agent, "Toilet") * QueuePenalty(target) * DistancePenalty(agent, target.WorldPosition);
         }
     }
+
+    public class BUseVendingMachine : BehaviorScript
+    {
+        public override float GetUtility(DynamicObjectInstance target, Behavior behavior, Agent agent)
+        {
+            if (!agent.HasCheckedIn)
+            {
+                return float.MinValue;
+            }
+
+            if (agent.Needs["Thirst"] < 50)
+            {
+                return float.MinValue;
+            }
+
+            return NeedUrgency(agent, "Thirst") * QueuePenalty(target) * DistancePenalty(agent, target.WorldPosition);
+        }
+    }
 }

@@ -18,6 +18,8 @@ namespace GymTycoon.Code.AI.BehaviorTree
             { new ScopedName("Script.Default.DumbellCurl"), CreateBasicExercise() },
             { new ScopedName("Script.Default.ReturnToDispenser"), CreateReturnToDispenser() },
             { new ScopedName("Script.Default.Toilet"), CreateUseToilet() },
+            { new ScopedName("Script.Default.VendingMachine"), CreateUseVendingMachine() },
+            { new ScopedName("Script.Default.ConsumeHeldItem"), CreateConsumeHeldItem() }
         };
 
         public static BehaviorTreeBuilder Create(ScopedName name)
@@ -148,6 +150,27 @@ namespace GymTycoon.Code.AI.BehaviorTree
                 .Node(() => new BTSelectTargetSlotAsDestination())
                 .Node(() => new BTMoveTo())
                 .Node(() => new BTUseToilet())
+            .End();
+        }
+
+        public static BehaviorTreeBuilder CreateUseVendingMachine()
+        {
+            BehaviorTreeBuilder builder = new BehaviorTreeBuilder();
+            return builder.Composite(() => new BTSequence())
+                .Node(() => new BTClaimSlot())
+                .Node(() => new BTSelectTargetSlotAsDestination())
+                .Node(() => new BTMoveTo())
+                .Node(() => new BTUseVendingMachine())
+            .End();
+        }
+
+        public static BehaviorTreeBuilder CreateConsumeHeldItem()
+        {
+            BehaviorTreeBuilder builder = new BehaviorTreeBuilder();
+            return builder.Composite(() => new BTSequence())
+                .Node(() => new BTSelectDesirableExerciseLocation())
+                .Node(() => new BTMoveTo())
+                .Node(() => new BTConsumeHeldItem())
             .End();
         }
     }

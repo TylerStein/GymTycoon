@@ -77,6 +77,7 @@ namespace GymTycoon.Code.AI
 
             new NeedDef("Toilet", NeedCategory.Basic, HappinessFunction.Exponential, 1, 0, Needs.MaxValue),
             new NeedDef("Rest", NeedCategory.Basic, HappinessFunction.Linear, -1, 0, Needs.MaxValue),
+            new NeedDef("Thirst", NeedCategory.Basic, HappinessFunction.Linear, -1, 0, Needs.MaxValue),
 
             new NeedDef("Beauty", NeedCategory.Environmental, HappinessFunction.Linear, 0),
             new NeedDef("Social", NeedCategory.Environmental, HappinessFunction.Linear, 1),

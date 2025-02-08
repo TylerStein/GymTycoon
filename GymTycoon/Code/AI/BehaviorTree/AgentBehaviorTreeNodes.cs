@@ -567,4 +567,44 @@ namespace GymTycoon.Code.AI.BehaviorTree
             return BTState.RUNNING;
         }
     }
+
+    public class BTUseVendingMachine : BTBehavior
+    {
+        private string targetKey;
+
+        public BTUseVendingMachine(string target = DefaultTargetKey)
+        {
+            targetKey = target;
+        }
+
+        protected override BTState Update()
+        {
+            if (Blackboard.TryGetValue(targetKey, out DynamicObjectInstance inst))
+            {
+                // TODO: Prompt vendor to dispense child direct to guest held state
+            }
+
+            return BTState.FAILURE;
+        }
+    }
+
+    public class BTConsumeHeldItem : BTBehavior
+    {
+        private string targetKey;
+
+        public BTConsumeHeldItem(string target = DefaultTargetKey)
+        {
+            targetKey = target;
+        }
+
+        protected override BTState Update()
+        {
+            if (Blackboard.TryGetValue(targetKey, out DynamicObjectInstance inst))
+            {
+                // TODO: Consume some of the held item, if it's empty, optionally leave garbage behind
+            }
+
+            return BTState.FAILURE;
+        }
+    }
 }
