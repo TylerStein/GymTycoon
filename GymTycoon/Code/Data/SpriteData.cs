@@ -1,5 +1,4 @@
 ﻿using GymTycoon.Code.Common;
-using System;
 using Newtonsoft.Json;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
@@ -31,11 +30,15 @@ namespace GymTycoon.Code.Data
         [JsonProperty]
         public readonly string TextureNorth;
         [JsonProperty]
+        public readonly string TextureSheet;
+        [JsonProperty]
         public readonly float FrameRate;
         [JsonProperty]
         public readonly int Width;
         [JsonProperty]
         public readonly int Height;
+        [JsonProperty]
+        public readonly string Type;
     }
 
     public class SpriteData
@@ -69,6 +72,7 @@ namespace GymTycoon.Code.Data
         public ScopedName Name = null;
         public ScopedName[] SpriteSheets = null;
         public int Sort = 0;
+        public bool IsSheet = false;
 
         public static SpriteLayer Load(SpriteLayerData data)
         {
@@ -76,7 +80,7 @@ namespace GymTycoon.Code.Data
             {
                 Name = new ScopedName(data.Name),
                 SpriteSheets = data.SpriteSheets.Select((name) => new ScopedName(name)).ToArray(),
-                Sort = data.Sort,
+                Sort = data.Sort
             };
             return layer;
         }
@@ -86,6 +90,7 @@ namespace GymTycoon.Code.Data
     {
         public ScopedName Name = null;
         public Texture2D[] Textures = null;
+        public bool IsSheet = false;
         public float FrameRate = 1f;
         public int Width = 1;
         public int Height = 1;
@@ -93,19 +98,24 @@ namespace GymTycoon.Code.Data
 
         public static SpriteSheet Load(SpriteSheetData data, ContentManager content)
         {
+            bool isSheet = data.TextureSheet != null;
             SpriteSheet sheet = new SpriteSheet()
             {
                 Name = new ScopedName(data.Name),
-                Textures = [
-                    content.Load<Texture2D>(data.TextureNorth),
-                    content.Load<Texture2D>(data.TextureSouth),
-                    content.Load<Texture2D>(data.TextureEast),
-                    content.Load<Texture2D>(data.TextureWest)
-                ],
+                Textures =
+                    isSheet
+                    ? [ content.Load<Texture2D>(data.TextureSheet) ]
+                    : [
+                        content.Load<Texture2D>(data.TextureNorth),
+                        content.Load<Texture2D>(data.TextureSouth),
+                        content.Load<Texture2D>(data.TextureEast),
+                        content.Load<Texture2D>(data.TextureWest)
+                    ],
                 FrameRate = data.FrameRate,
                 Width = data.Width,
                 Height = data.Height,
                 Frames = data.Width * data.Height,
+                IsSheet = isSheet
             };
 
             return sheet;
@@ -118,15 +128,21 @@ namespace GymTycoon.Code.Data
 
         public Texture2D GetTexture(int frame, Direction direction, out Rectangle sourceRectangle)
         {
-            sourceRectangle = GetSourceRectangle(frame);
+            if(IsSheet)
+            {
+                sourceRectangle = GetSourceRectangle(frame, (int)direction);
+                return Textures[0];
+            }
+
+            sourceRectangle = GetSourceRectangle(frame, 0);
             return GetTexture(direction);
         }
 
-        public Rectangle GetSourceRectangle(int frame)
+        public Rectangle GetSourceRectangle(int frame, int direction)
         {
-            int x = frame % Width;
-            int y = (int)MathF.Floor(frame / (float)Width);
-            return new Rectangle(x * 32, y * 32, 32, 32);
+            int x = frame * WorldRenderer.SpriteSize;
+            int y = direction * WorldRenderer.SpriteSize;
+            return new Rectangle(x, y, WorldRenderer.SpriteSize, WorldRenderer.SpriteSize);
         }
 
         public int WrapFrame(int nextFrame)
