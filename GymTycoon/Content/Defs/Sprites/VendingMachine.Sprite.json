@@ -1,0 +1,22 @@
+{
+  "Type": "Sprite",
+  "Package": "Default",
+  "Data": {
+    "Name": "VendingMachine",
+    "Layers": [
+      {
+        "Name": "VendingMachine",
+        "SpriteSheets": [ "VendingMachine" ]
+      }
+    ],
+    "SpriteSheets": [
+      {
+        "Name": "VendingMachine",
+        "TextureSheet": "Textures/Sprites/Objects/VendingMachine/VendingMachine_32",
+        "FrameRate": 0,
+        "Width": 1,
+        "Height": 1
+      }
+    ]
+  }
+}

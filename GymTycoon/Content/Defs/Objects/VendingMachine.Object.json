@@ -1,0 +1,24 @@
+{
+  "Type": "DynamicObject",
+  "Package": "Default",
+  "Data": {
+    "Name": "PCube_Large",
+    "Category": "Decoration",
+    "Beauty": 2,
+    "Width": 1,
+    "Height": 1,
+    "Holdable": false,
+    "Navigable": false,
+    "BuildCost": 1,
+    "Purchaseable": true,
+    "Behaviors": [],
+    "Sprites": {
+      "Default": "Sprite.Default.PCube_Large"
+    },
+    "GuestSlots": [],
+    "FunModifier": 0,
+    "FitnessModifier": 0,
+    "DifficultyModifier": 0,
+    "StaffSlots": []
+  }
+}

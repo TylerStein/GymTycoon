@@ -608,6 +608,18 @@
 /processorParam:TextureFormat=Color
 /build:Textures/Sprites/Objects/Treadmill_W.png
 
+#begin Textures/Sprites/Objects/VendingMachine/VendingMachine_32.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Textures/Sprites/Objects/VendingMachine/VendingMachine_32.png
+
 #begin Textures/Tilemaps/Garage/Floor_Concrete.png
 /importer:TextureImporter
 /processor:TextureProcessor
