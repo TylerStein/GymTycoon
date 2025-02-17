@@ -295,7 +295,9 @@ namespace GymTycoon.Code.AI
                 return false;
             }
 
+            GameInstance.Instance.Performance.Start("Pathfinding");
             HasDestination = Navigation.Pathfinding(GameInstance.Instance.World, worldPos, point, Path);
+            GameInstance.Instance.Performance.Stop();
             if (HasDestination)
             {
                 FinalDestination = point;

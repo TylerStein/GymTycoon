@@ -171,7 +171,7 @@ namespace GymTycoon.Code
 
         public void Update(float deltaTime, bool tick)
         {
-
+            GameInstance.Instance.Performance.Start("Guest Logic");
             for (int i = ActiveGuests.Count - 1; i >= 0; i--)
             {
                 if (ActiveGuests[i].PendingRemoval)
@@ -186,6 +186,7 @@ namespace GymTycoon.Code
                     ActiveGuests[i].Tick();
                 }
             }
+            GameInstance.Instance.Performance.Stop();
 
             if (ActiveGuests.Count > _maxActiveGuests || !_autoSpawnEnabled || deltaTime == 0f)
             {
@@ -237,6 +238,7 @@ namespace GymTycoon.Code
 
         public Guest SpawnOffscreenGuest(OffscreenGuest offscreenGuest)
         {
+            GameInstance.Instance.Performance.Start("SpawnOffscreenGuest");
             List<int> spawnTiles = GameInstance.Instance.World.FindTilesWithProperties(TileProperties.Spawn, 4);
             if (spawnTiles.Count == 0)
             {
@@ -259,6 +261,7 @@ namespace GymTycoon.Code
             GameInstance.Instance.Economy.Transaction(GameInstance.Instance.Economy.MembershipPrice, TransactionType.Membership);
             guest.UpdateHappiness(guest.OffscreenGuest.GetHappinessChangeFromWealthTierVsCost(GameInstance.Instance.Economy.MembershipPrice));
 
+            GameInstance.Instance.Performance.Stop();
             return guest;
         }
 

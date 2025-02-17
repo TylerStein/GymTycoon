@@ -45,6 +45,7 @@ namespace GymTycoon.Code
         public Stats Stats;
         public Scenario Scenario;
         public NeedsManager NeedsManager;
+        public Performance Performance;
 
         public Dictionary<DynamicObjectCategory, Zone> Zones;
 
@@ -56,7 +57,6 @@ namespace GymTycoon.Code
         private bool _worldDirty = false;
 
         public float DeltaTime = 0f;
-
 
         public GameInstance(Scenario scenario, int viewportWidth = 1920, int viewportHeight = 1080)
         {
@@ -78,6 +78,7 @@ namespace GymTycoon.Code
             Build = new Build();
             Stats = new Stats();
             NeedsManager = new NeedsManager();
+            Performance = new Performance();
             Scenario = scenario;
 
             Zones = [];
@@ -138,6 +139,8 @@ namespace GymTycoon.Code
 
         protected override void Update(GameTime gameTime)
         {
+            Performance.Start("Update");
+
             if (Input.GetBinaryAction(SymbolInputExit).Pressed)
             {
                 Exit();
@@ -162,12 +165,19 @@ namespace GymTycoon.Code
 
             Time.Update(DeltaTime);
             Economy.Update(DeltaTime);
+
+            Performance.Start("Director");
             Director.Update(DeltaTime, tick);
+            Performance.Stop();
+
             DebugNav.Update(); // must update before cursor to consume inputs
             Cursor.Update();
             Stats.Update();
             Scenario.Update();
+
+            Performance.Start("World");
             World.Update(DeltaTime);
+            Performance.Stop();
 
             Point3 worldSize = World.GetSize();
             int depthChange = Input.GetLinearAction(SymbolInputDepth).Delta;
@@ -177,14 +187,18 @@ namespace GymTycoon.Code
             }
 
             WorldRenderer.SetViewportSize(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+
+            Performance.Start("Input");
             Input.Update(gameTime, Window, GraphicsDevice.Viewport.Bounds);
+            Performance.Stop();
 
             Vector2 move = new(
                 Input.GetLinearAction(SymbolInputHorizontal).Value * (float)gameTime.ElapsedGameTime.TotalSeconds,
                 Input.GetLinearAction(SymbolInputVertical).Value * (float)gameTime.ElapsedGameTime.TotalSeconds
             );
 
-            if (move.LengthSquared() > 0f) {
+            if (move.LengthSquared() > 0f)
+            {
                 move.Normalize();
                 move *= _cameraMoveSpeed;
                 WorldRenderer.MoveCamera(new Point((int)MathF.Floor(move.X), (int)MathF.Floor(move.Y)));
@@ -198,10 +212,17 @@ namespace GymTycoon.Code
 
             if (tick || _worldDirty)
             {
+                Performance.Start("UpdateAdvertisedBehaviors");
                 World.UpdateAdvertisedBehaviors();
+                Performance.Stop();
             }
 
             _worldDirty = false;
+
+            Performance.Stop();
+
+
+            Performance.UpdateFPS(gameTime);
 
             base.Update(gameTime);
         }
@@ -242,7 +263,7 @@ namespace GymTycoon.Code
 
             return true;
         }
-        
+
         // TODO: Cleanup
         public bool CanNavigatePreCheckInOnTile(int worldIndex)
         {
@@ -258,11 +279,16 @@ namespace GymTycoon.Code
 
         protected override void Draw(GameTime gameTime)
         {
+            Performance.Start("Draw");
+
             GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(Color.Gray);
 
+            Performance.Start("Draw World");
             WorldRenderer.Draw(DeltaTime, this);
+            Performance.Stop();
 
+            Performance.Start("ImGui");
             ImGuiRenderer.BeginLayout(gameTime);
 
             // Gameplay
@@ -280,9 +306,12 @@ namespace GymTycoon.Code
             Director.DrawImGui();
             DebugNav.DrawImGui();
             Scenario.DrawImGui();
+            Performance.DrawImGui();
 
             ImGuiRenderer.EndLayout();
+            Performance.Stop();
 
+            Performance.Stop();
             base.Draw(gameTime);
         }
     }

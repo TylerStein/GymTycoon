@@ -62,6 +62,7 @@ namespace GymTycoon.Code.Layers
 
         public T GetValueAt(int index)
         {
+            GameInstance.Instance.Performance.Start("DataLayer Eval");
             if (index < 0 || index >= _cache.Length)
             {
                 throw new Exception($"Invalid DataLayer index: {index}");
@@ -73,6 +74,7 @@ namespace GymTycoon.Code.Layers
                 _cache[index] = true;
             }
 
+            GameInstance.Instance.Performance.Stop();
             return _layer[index];
         }
 

@@ -139,27 +139,27 @@ namespace GymTycoon.Code
 
         public Point WorldToScreen(Point3 worldPosition)
         {
-            return IsoGrid.GridToScreen((Point)worldPosition, _camera, _worldTileSize); // + new Point(0, -z * (_lastDrawTileSize.Y / 4));
+            return IsoGrid.GridToScreen(worldPosition, _camera, _drawTileSize);
         }
 
         public Point WorldToScreenNoCamera(Vector3 worldPosition)
         {
-            return IsoGrid.GridToScreen(new Vector2(worldPosition.X, worldPosition.Y), Point.Zero, _worldTileSize);
+            return IsoGrid.GridToScreen(worldPosition, Point.Zero, _drawTileSize);
         }
 
         public Point WorldToScreen(Vector3 worldPosition)
         {
-            return IsoGrid.GridToScreen(new Vector2(worldPosition.X, worldPosition.Y), _camera, _worldTileSize);
+            return IsoGrid.GridToScreen(worldPosition, _camera, _drawTileSize);
         }
 
         public Point WorldToScreen(Point3 worldPosition, Vector2 offset)
         {
-            return IsoGrid.GridToScreen(new Vector2(worldPosition.X + offset.X, worldPosition.Y + offset.Y), _camera, _worldTileSize);
+            return IsoGrid.GridToScreen(worldPosition, _camera, _drawTileSize);
         }
 
-        public Point ScreenToWorld(Point screen)
+        public Point3 ScreenToWorld(Point screen)
         {
-            return IsoGrid.ScreenToGrid(new Point(screen.X, screen.Y), _camera, _worldTileSize);
+            return IsoGrid.ScreenToGrid(screen, _camera, _viewLayer, _drawTileSize);
         }
 
         protected Color GetDrawColor(Point3 worldPosition, Color baseColor)
@@ -184,16 +184,14 @@ namespace GymTycoon.Code
 
         public void ZoomCamera(int delta, Point screenTarget)
         {
-            Point worldPositionBeforeZoom = ScreenToWorld(screenTarget);
+            Point3 worldPositionBeforeZoom = ScreenToWorld(screenTarget);
 
-            _drawTileSize += delta;
-            if (_drawTileSize < 16) _drawTileSize = 16;
-            if (_drawTileSize > 128) _drawTileSize = 128;
+            _drawTileSize = Math.Clamp(_drawTileSize + delta, 16, 128);
 
             _worldTileSize.X = _drawTileSize;
             _worldTileSize.Y = _drawTileSize / 2;
 
-            Point screenPositionAfterZoom = WorldToScreen((Point3)worldPositionBeforeZoom);
+            Point screenPositionAfterZoom = WorldToScreen(worldPositionBeforeZoom);
             _camera += screenTarget - screenPositionAfterZoom;
         }
 
@@ -231,7 +229,7 @@ namespace GymTycoon.Code
             }
 
             Rectangle rect;
-            Rectangle destinationRectangle = new(screen.X - _drawTileSize / 2, screen.Y - _drawTileSize / 2, _drawTileSize, _drawTileSize);
+            Rectangle destinationRectangle = new(screen.X, screen.Y, _drawTileSize, _drawTileSize);
 
             Texture2D tex = sprite.GetTexture(0, direction, out rect);
             _spriteBatch.Draw(tex, destinationRectangle, rect, GetDrawColor(worldPosition, valid ? _validGhostColor : _invalidGhostColor), 0f, Vector2.Zero, SpriteEffects.None, depth);
@@ -247,7 +245,7 @@ namespace GymTycoon.Code
             }
 
             Rectangle rect;
-            Rectangle destinationRectangle = new(screen.X - _drawTileSize / 2, screen.Y - _drawTileSize / 2, _drawTileSize, _drawTileSize);
+            Rectangle destinationRectangle = new(screen.X, screen.Y, _drawTileSize, _drawTileSize);
             SpriteInstance sprite = obj.GetActiveSprite();
             int numLayers = sprite.GetNumLayers();
             float layerStep = (_depthMaxDynamicObjectBackground - _depthMinDynamicObjectBackground) / numLayers;
@@ -267,7 +265,7 @@ namespace GymTycoon.Code
 
         private void DrawScreen(Point screen, Texture2D texture, float depth, int sheetOffsetX, int sheetOffsetY, Color color, SpriteEffects spriteEffects = SpriteEffects.None)
         {
-            Rectangle destinationRectangle = new(screen.X - _drawTileSize / 2, screen.Y - _drawTileSize / 2, _drawTileSize, _drawTileSize);
+            Rectangle destinationRectangle = new(screen.X, screen.Y, _drawTileSize, _drawTileSize);
             Rectangle sourceRectangle = new Rectangle(sheetOffsetX * SpriteSize, sheetOffsetY * SpriteSize, SpriteSize, SpriteSize);
             _spriteBatch.Draw(texture, destinationRectangle, sourceRectangle, color, 0f, Vector2.Zero, spriteEffects, depth);
         }
@@ -275,7 +273,7 @@ namespace GymTycoon.Code
         private void DrawGuest(Guest guest, Point3 gridPosition, Vector3 worldPosition, float depth)
         {
             Point screen = WorldToScreen(worldPosition);
-            Rectangle destinationRectangle = new(screen.X - _drawTileSize / 2, screen.Y - _drawTileSize / 2, _drawTileSize, _drawTileSize);
+            Rectangle destinationRectangle = new(screen.X, screen.Y, _drawTileSize, _drawTileSize);
             Rectangle sourceRectangle;
             SpriteInstance sprite = guest.Sprite;
             int numLayers = sprite.GetNumLayers();
@@ -300,7 +298,7 @@ namespace GymTycoon.Code
             {
                 for (int z = 1; z < _viewLayer - worldPosition.Z + 1; z++)
                 {
-                    Point3 inFrontPosition = worldPosition + new Point3(0, 0, z);
+                    Point3 inFrontPosition = worldPosition + new Point3(1, 1, z);
                     int inFrontIndex = game.World.GetIndex(inFrontPosition);
                     if (inFrontIndex >= 0 && inFrontIndex < game.World.GetTileCount())
                     {
@@ -328,16 +326,18 @@ namespace GymTycoon.Code
             return false;
         }
 
-        public static int GetDepth(Point3 worldPosition, int width, int height)
+        public static float GetDepth(Point3 worldPosition, Point3 worldSize)
         {
-            int weight = width + height + 1;
-            return worldPosition.X + worldPosition.Y + worldPosition.Z * weight;
+            //int weight = width + height + 1;
+            //return worldPosition.X + worldPosition.Y + worldPosition.Z * weight;
+            return 1f - IsoGrid.GetDepth(worldPosition, worldSize, worldSize);
         }
 
-        public static float GetDepth(Vector3 worldPosition, int width, int height)
+        public static float GetDepth(Vector3 worldPosition, Point3 worldSize)
         {
-            int weight = width + height + 1;
-            return worldPosition.X + worldPosition.Y + worldPosition.Z * weight;
+            //int weight = width + height + 1;
+            //return worldPosition.X + worldPosition.Y + worldPosition.Z * weight;
+            return 1f - IsoGrid.GetDepth(worldPosition, worldSize, worldSize);
         }
 
         public void Draw(float deltaTime, GameInstance game)
@@ -350,22 +350,19 @@ namespace GymTycoon.Code
 
             _spriteBatch.Begin(SpriteSortMode.FrontToBack, null, SamplerState.PointClamp);
 
-            int minDepth = GetDepth(Point3.Zero, worldSize.X, worldSize.Y);
-            int maxDepth = GetDepth(worldSize, worldSize.X, worldSize.Y);
-
+            GameInstance.Instance.Performance.Start("Tiles");
             for (int i = 0; i < game.World.GetTileCount(); i++)
             {
                 TileType tileType = game.World.GetTile(i);
                 bool isVisible = IsTileVisible(tileType);
                 Point3 worldPosition = game.World.GetPosition(i);
-                int tileDepth = GetDepth(worldPosition, worldSize.X, worldSize.Y);
-                float tileDepthPct = (float)tileDepth / (float)(maxDepth - minDepth);
+                float tileDepth = GetDepth(worldPosition, worldSize);
 
                 if (_drawBlockedSpaces && worldPosition.Z == _viewLayer)
                 {
                     if (!Navigation.IsTileNavigable(game.World, i))
                     {
-                        DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthDebugDraw, 0, 0, Color.Red);
+                        DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepth + _depthDebugDraw, 0, 0, Color.Red);
                     }
                 }
 
@@ -376,8 +373,9 @@ namespace GymTycoon.Code
 
 
                 Texture2D tileTexture = game.Resources.GetTileTexture(tileType.ID);
-                DrawTile(worldPosition, tileTexture, tileDepthPct, 0, 0, Color.White);
+                DrawTile(worldPosition, tileTexture, tileDepth, 0, 0, Color.White);
             }
+            GameInstance.Instance.Performance.Stop();
 
 
             if (_drawBeauty)
@@ -391,12 +389,11 @@ namespace GymTycoon.Code
                     }
 
                     float beautyPct = game.World.BeautyLayer.GetBeautyPercentAt(i);
-                    int tileDepth = GetDepth(worldPosition, worldSize.X, worldSize.Y);
-                    float tileDepthPct = (float)tileDepth / (float)(maxDepth - minDepth);
+                    float tileDepth = GetDepth(worldPosition, worldSize);
 
                     float hue = MathHelper.Lerp(0.5f, 1f, beautyPct);
                     Color color = new HSVColor(hue, 1f, 1f).ToColor(0.24f);
-                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthBeautyOverlay, 0, 0, color); 
+                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepth + _depthBeautyOverlay, 0, 0, color); 
                 }
             }
             else if (_drawSocial)
@@ -410,12 +407,11 @@ namespace GymTycoon.Code
                     }
 
                     float socialPct = game.World.SocialLayer.GetSocialPercentat(i);
-                    int tileDepth = GetDepth(worldPosition, worldSize.X, worldSize.Y);
-                    float tileDepthPct = (float)tileDepth / (float)(maxDepth - minDepth);
+                    float tileDepth = GetDepth(worldPosition, worldSize);
 
                     float hue = MathHelper.Lerp(0.5f, 1f, socialPct);
                     Color color = new HSVColor(hue, 1f, 1f).ToColor(0.24f);
-                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthZoneOverlay, 0, 0, color);
+                    DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepth + _depthZoneOverlay, 0, 0, color);
                 }
             }
             else if (_drawZones)
@@ -433,19 +429,18 @@ namespace GymTycoon.Code
                     foreach (var index in kvp.Value.Data)
                     {
                         Point3 worldPosition = game.World.GetPosition(index);
-                        int tileDepth = GetDepth(worldPosition, worldSize.X, worldSize.Y);
-                        float tileDepthPct = (float)tileDepth / (float)(maxDepth - minDepth);
+                        float tileDepth = GetDepth(worldPosition, worldSize);
 
-                        DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepthPct + _depthDebugDraw, 0, 0, color);
+                        DrawTile(worldPosition, game.Resources.GetDebugCube(), tileDepth + _depthDebugDraw, 0, 0, color);
                     }
                 }
             }
 
-            _worldCursor = (Point3)ScreenToWorld(game.Input.MousePosition);
+            _worldCursor = ScreenToWorld(game.Input.MousePosition);
             _worldCursor.Z = _viewLayer;
+            _worldCursor.X -= 1;
             _worldCursorIndex = GameInstance.Instance.World.GetIndex(_worldCursor);
-            int cursorDepth = GetDepth(_worldCursor, worldSize.X, worldSize.Y);
-            _cursorDepth = (float)cursorDepth / (float)(maxDepth - minDepth);
+            _cursorDepth = GetDepth(_worldCursor, worldSize);
 
             PlaceCursor placeCursor;
             bool isPlaceCursor = game.Cursor.TryGetCursor(out placeCursor);
@@ -462,6 +457,7 @@ namespace GymTycoon.Code
             SelectCursor selectCursor;
             bool isSelectCursor = game.Cursor.TryGetCursor(out selectCursor);
 
+            GameInstance.Instance.Performance.Start("DynamicObjects");
             foreach (var dynamicObject in game.World.GetAllDynamicObjects())
             {
                 if (dynamicObject.Held)
@@ -471,34 +467,34 @@ namespace GymTycoon.Code
                 }
 
                 Point3 dynamicObjectPosition = game.World.GetPosition(dynamicObject.WorldPosition);
-                int dynamicObjectDepth = GetDepth(dynamicObjectPosition, worldSize.X, worldSize.Y);
-                float dynamicObjectDepthPct = (float)dynamicObjectDepth / (float)(maxDepth - minDepth);
+                float dynamicObjectDepth = GetDepth(dynamicObjectPosition, worldSize);
                 bool isSelected = isSelectCursor && selectCursor.IsSelected(dynamicObject);
-                DrawObject(dynamicObject, dynamicObjectPosition, dynamicObject.Direction, dynamicObjectDepthPct + _depthMinDynamicObjectBackground, isSelected);
+                DrawObject(dynamicObject, dynamicObjectPosition, dynamicObject.Direction, dynamicObjectDepth + _depthMinDynamicObjectBackground, isSelected);
 
                 if (_drawGuestSlots && dynamicObjectPosition.Z == _viewLayer && !dynamicObject.Racked)
                 {
                     foreach (var slotPosition in dynamicObject.GetGuestSlots(dynamicObject.Direction))
                     {
-                        DrawTile(dynamicObjectPosition + slotPosition, game.Resources.GetDebugCube(), dynamicObjectDepthPct + _depthDebugDraw, 0, 0, Color.Green);
+                        DrawTile(dynamicObjectPosition + slotPosition, game.Resources.GetDebugCube(), dynamicObjectDepth + _depthDebugDraw, 0, 0, Color.Green);
                     }
 
                     foreach (var slotPosition in dynamicObject.GetStaffSlots(dynamicObject.Direction))
                     {
-                        DrawTile(dynamicObjectPosition + slotPosition, game.Resources.GetDebugCube(), dynamicObjectDepthPct + _depthDebugDraw, 0, 0, Color.Yellow);
+                        DrawTile(dynamicObjectPosition + slotPosition, game.Resources.GetDebugCube(), dynamicObjectDepth + _depthDebugDraw, 0, 0, Color.Yellow);
                     }
                 }
             }
+            GameInstance.Instance.Performance.Stop();
 
+            GameInstance.Instance.Performance.Start("Guests");
             for (int i = 0; i < game.Director.ActiveGuests.Count; i++)
             {
                 Guest guest = game.Director.ActiveGuests[i];
                 int guestIndex = guest.WorldPosition;
                 Point3 guestGridPos = game.World.GetPosition(guestIndex);
                 Vector3 guestPosition = guestGridPos.ToVector3() + guest.TileOffset;
-                float guestDepth = GetDepth(guestPosition, worldSize.X, worldSize.Y);
-                float guestDepthPct = (float)guestDepth / (float)(maxDepth - minDepth);
-                DrawGuest(guest, guestGridPos, guestPosition, guestDepthPct + _depthMinGuest);
+                float guestDepth = GetDepth(guestPosition, worldSize);
+                DrawGuest(guest, guestGridPos, guestPosition, guestDepth + _depthMinGuest);
 
                 if (guest.FollowCam)
                 {
@@ -507,17 +503,17 @@ namespace GymTycoon.Code
                     _camera += new Point(_viewportSize.X / 2, _viewportSize.Y / 2);
                 }
             }
+            GameInstance.Instance.Performance.Stop();
 
             for (int i = Bursts.Count - 1; i >= 0; i--)
             {
                 Point3 burstPos = Bursts[i].WorldPos;
                 int yOff = (int)(Bursts[i].Offset * (float)_drawTileSize);
                 Point screen = WorldToScreen(burstPos) - new Point(0, _drawTileSize + yOff);
-                int burstDepth = GetDepth(burstPos, worldSize.X, worldSize.Y);
-                float burstDepthPct = (float)burstDepth / (float)(maxDepth - minDepth);
+                float burstDepth = GetDepth(burstPos, worldSize);
                 Texture2D burstTexture = game.Resources.GetBurstTexture(Bursts[i].BurstType);
                 Color burstColor = new Color(Bursts[i].Alpha, Bursts[i].Alpha, Bursts[i].Alpha, Bursts[i].Alpha);
-                DrawScreen(screen, burstTexture, burstDepthPct + _depthBurst, 0, 0, GetDrawColor(burstPos, burstColor));
+                DrawScreen(screen, burstTexture, burstDepth + _depthBurst, 0, 0, GetDrawColor(burstPos, burstColor));
                 _drawBurstCount++;
 
                 Bursts[i].Update(deltaTime);

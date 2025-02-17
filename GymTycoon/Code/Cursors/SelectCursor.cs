@@ -196,32 +196,33 @@ namespace GymTycoon.Code.Cursors
 
         public void BuildHitboxes(World world, Director director, WorldRenderer renderer)
         {
-            Point3 posMin;
-            Point screenMin, size;
-            Point halfRenderSize = new Point(renderer.GetDrawTileSize() / 2, renderer.GetDrawTileSize() / 2);
+            Point3 worldPos;
+            Point screenPos, size;
+            int baseTileSize = renderer.GetDrawTileSize();
+            int halfTileSize = baseTileSize / 2;
 
             foreach (var obj in world.GetAllDynamicObjects())
             {
-                posMin = world.GetPosition(obj.WorldPosition);
-                screenMin = renderer.WorldToScreen(posMin) - halfRenderSize;
-                size = new Point(obj.Data.Width * renderer.GetDrawTileSize(), obj.Data.Height * renderer.GetDrawTileSize());
+                worldPos = world.GetPosition(obj.WorldPosition);
+                screenPos = renderer.WorldToScreen(worldPos);
+                size = new Point(obj.Data.Width * halfTileSize, obj.Data.Height * halfTileSize);
                 _hitboxes.Add(new Hitbox()
                 {
-                    Rect = new Rectangle(screenMin.X, screenMin.Y, size.X, size.Y),
-                    Depth = WorldRenderer.GetDepth(posMin, world.GetWidth(), world.GetHeight()),
+                    Rect = new Rectangle(screenPos.X + halfTileSize / 2, screenPos.Y + halfTileSize / 2, size.X, size.Y),
+                    Depth = WorldRenderer.GetDepth(worldPos, world.GetSize()),
                     dynamicObjectInstance = obj.Parent != null ? obj.Parent : obj
                 });
             }
 
             foreach (var guest in director.ActiveGuests)
             {
-                posMin = world.GetPosition(guest.WorldPosition);
-                screenMin = renderer.WorldToScreen(posMin) - halfRenderSize;
-                size = new Point(renderer.GetDrawTileSize(), renderer.GetDrawTileSize());
+                worldPos = world.GetPosition(guest.WorldPosition);
+                screenPos = renderer.WorldToScreen(worldPos);
+                size = new Point(halfTileSize, halfTileSize);
                 _hitboxes.Add(new Hitbox()
                 {
-                    Rect = new Rectangle(screenMin.X, screenMin.Y, size.X, size.Y),
-                    Depth = WorldRenderer.GetDepth(posMin, world.GetWidth(), world.GetHeight()),
+                    Rect = new Rectangle(screenPos.X + halfTileSize / 2, screenPos.Y + halfTileSize / 2, size.X, size.Y),
+                    Depth = WorldRenderer.GetDepth(worldPos, world.GetSize()),
                     guest = guest,
                 });
             }

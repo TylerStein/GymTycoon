@@ -29,13 +29,18 @@ namespace GymTycoon.Code
 
         public static void PopulateTiledMapWorld(GameInstance game, TiledMap tiledMap)
         {
-            game.World.Set(tiledMap.Width, tiledMap.Height, tiledMap.Layers.Length, TileType.Empty);
+            int mapWidth = tiledMap.Width + tiledMap.Layers.Length;
+            int mapHeight = tiledMap.Height + tiledMap.Layers.Length;
+
+            game.World.Set(mapWidth, mapHeight, tiledMap.Layers.Length, TileType.Empty);
             for (int z = 0; z < tiledMap.Layers.Length; z++)
             {
                 for (int i = 0; i < tiledMap.Layers[z].data.Length; i++)
                 {
                     Point layerPoint = IsoGrid.IndexToPoint(i, tiledMap.Width);
-                    int index3D = IsoGrid.Point3ToIndex(layerPoint.X, layerPoint.Y, z, tiledMap.Width, tiledMap.Height);
+                    // Tiled layers move points along the XY to give the illusion of verticality - since we want our 3D grid to simulate actual space, we need to adjust for it
+                    layerPoint += new Point(z, z);
+                    int index3D = IsoGrid.Point3ToIndex(layerPoint.X, layerPoint.Y, z, mapWidth, mapHeight);
                     ushort id = (ushort)tiledMap.Layers[z].data[i];
                     TileType tileType = game.Resources.GetTileType(id);
                     game.World.SetTile(tileType, index3D);
